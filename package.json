@@ -1,0 +1,26 @@
+{
+  "name": "bountyvault",
+  "version": "1.0.0",
+  "description": "BountyVault is a decentralized bounty escrow platform built on Algorand, enabling trustless payments and transparent on-chain dispute resolution without intermediaries.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Faizankhan-cyber/bountyvault.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Faizankhan-cyber/bountyvault/issues"
+  },
+  "homepage": "https://github.com/Faizankhan-cyber/bountyvault#readme",
+  "dependencies": {
+    "better-sqlite3": "^12.8.0",
+    "cors": "^2.8.6",
+    "express": "^5.2.1"
+  }
+}
