@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BountyVault | Poster Dashboard</title>
+  <style>
+    :root {
+      --bg: #0f0f23;
+      --card: #1a1a2e;
+      --accent: #6366f1;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --border: rgba(148, 163, 184, 0.22);
+      --danger: #ef4444;
+      --success: #22c55e;
+      --warn: #f59e0b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: "Space Grotesk", "Segoe UI", sans-serif;
+      background: radial-gradient(circle at 12% 8%, rgba(99, 102, 241, 0.25), transparent 38%),
+                  radial-gradient(circle at 82% 92%, rgba(99, 102, 241, 0.14), transparent 42%),
+                  var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.45;
+    }
+
+    .container {
+      width: min(1160px, 92vw);
+      margin: 0 auto;
+      padding: 1.2rem 0 2rem;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .heading {
+      font-size: clamp(1.4rem, 3vw, 2rem);
+      letter-spacing: -0.02em;
+    }
+
+    .subheading {
+      color: var(--muted);
+      margin-top: 0.2rem;
+      font-size: 0.94rem;
+    }
+
+    .user-chip {
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.4rem 0.75rem;
+      background: rgba(26, 26, 46, 0.86);
+      color: #cbd5e1;
+      font-size: 0.84rem;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 0.55rem;
+      margin-bottom: 0.9rem;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(26, 26, 46, 0.8);
+      color: var(--text);
+      padding: 0.55rem 0.78rem;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.88rem;
+    }
+
+    .tab-btn.active {
+      background: linear-gradient(90deg, var(--accent), #4f46e5);
+      border-color: rgba(99, 102, 241, 0.55);
+      color: #fff;
+    }
+
+    .panel {
+      display: none;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1rem;
+    }
+
+    .panel.active {
+      display: block;
+    }
+
+    .panel-title {
+      font-size: 1.08rem;
+      margin-bottom: 0.8rem;
+    }
+
+    .grid {
+      display: grid;
+      gap: 0.7rem;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .field {
+      display: grid;
+      gap: 0.28rem;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    input,
+    select,
+    textarea,
+    button {
+      font-family: inherit;
+      font-size: 0.93rem;
+    }
+
+    input,
+    select,
+    textarea {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #161629;
+      color: var(--text);
+      padding: 0.66rem 0.72rem;
+      outline: none;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 94px;
+    }
+
+    .actions {
+      margin-top: 0.85rem;
+      display: flex;
+      gap: 0.6rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #17172a;
+      color: var(--text);
+      padding: 0.56rem 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      border-color: var(--accent);
+    }
+
+    .btn-primary {
+      background: linear-gradient(90deg, var(--accent), #4f46e5);
+      border-color: rgba(99, 102, 241, 0.55);
+      color: #fff;
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.16);
+      border-color: rgba(239, 68, 68, 0.5);
+      color: #fecaca;
+    }
+
+    .btn-success {
+      background: rgba(34, 197, 94, 0.15);
+      border-color: rgba(34, 197, 94, 0.48);
+      color: #bbf7d0;
+    }
+
+    .btn-warn {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: rgba(245, 158, 11, 0.45);
+      color: #fde68a;
+    }
+
+    .btn:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    .spinner-wrap {
+      display: none;
+      justify-content: center;
+      padding: 1.3rem 0;
+    }
+
+    .spinner-wrap.active {
+      display: flex;
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      border: 4px solid rgba(148, 163, 184, 0.25);
+      border-top-color: var(--accent);
+      animation: spin 0.9s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .bounty-list {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .bounty-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: linear-gradient(160deg, #1a1a2e, #17172a);
+      padding: 0.86rem;
+      display: grid;
+      gap: 0.6rem;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 0.7rem;
+      flex-wrap: wrap;
+    }
+
+    .status-badge {
+      border-radius: 999px;
+      border: 1px solid transparent;
+      padding: 0.22rem 0.62rem;
+      font-size: 0.74rem;
+      text-transform: capitalize;
+    }
+
+    .status-open { background: rgba(99, 102, 241, 0.2); border-color: rgba(99, 102, 241, 0.48); color: #c7d2fe; }
+    .status-acquired { background: rgba(59, 130, 246, 0.2); border-color: rgba(59, 130, 246, 0.48); color: #bfdbfe; }
+    .status-disputed { background: rgba(239, 68, 68, 0.18); border-color: rgba(239, 68, 68, 0.5); color: #fecaca; }
+    .status-completed { background: rgba(34, 197, 94, 0.18); border-color: rgba(34, 197, 94, 0.5); color: #bbf7d0; }
+    .status-cancelled { background: rgba(107, 114, 128, 0.2); border-color: rgba(107, 114, 128, 0.48); color: #d1d5db; }
+
+    .muted {
+      color: var(--muted);
+      font-size: 0.87rem;
+    }
+
+    .info-banner {
+      border: 1px solid rgba(245, 158, 11, 0.45);
+      color: #fde68a;
+      background: rgba(245, 158, 11, 0.15);
+      border-radius: 9px;
+      padding: 0.5rem 0.62rem;
+      font-size: 0.86rem;
+    }
+
+    .empty {
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      text-align: center;
+      color: var(--muted);
+      padding: 1rem;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 0.8rem;
+    }
+
+    .timeline-item {
+      border-left: 2px solid rgba(99, 102, 241, 0.45);
+      padding-left: 0.72rem;
+      display: grid;
+      gap: 0.2rem;
+    }
+
+    .timeline-item h4 {
+      font-size: 0.96rem;
+      font-weight: 700;
+    }
+
+    .timeline-meta {
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .toast-wrap {
+      position: fixed;
+      right: 12px;
+      bottom: 12px;
+      display: grid;
+      gap: 0.48rem;
+      width: min(340px, calc(100vw - 24px));
+      z-index: 110;
+    }
+
+    .toast {
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      background: #111827;
+      color: #e5e7eb;
+      padding: 0.7rem 0.8rem;
+      font-size: 0.87rem;
+    }
+
+    .toast.success {
+      background: rgba(34, 197, 94, 0.15);
+      border-color: rgba(34, 197, 94, 0.5);
+      color: #dcfce7;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.72);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: 1rem;
+      z-index: 120;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal {
+      width: min(560px, 100%);
+      background: #1a1a2e;
+      color: #e2e8f0;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 0.92rem;
+      display: grid;
+      gap: 0.72rem;
+    }
+
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .modal-title {
+      font-size: 1.02rem;
+      font-weight: 700;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 760px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .container {
+        width: 94vw;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <section class="topbar">
+      <div>
+        <h1 class="heading">Poster Dashboard</h1>
+        <p class="subheading">Create bounties, manage payouts, and monitor dispute flow.</p>
+      </div>
+      <div class="user-chip" id="user-chip">Loading user...</div>
+    </section>
+
+    <section class="tabs" aria-label="Poster sections">
+      <button type="button" class="tab-btn active" data-tab="new">Post New Bounty</button>
+      <button type="button" class="tab-btn" data-tab="my">My Bounties</button>
+      <button type="button" class="tab-btn" data-tab="tx">Transactions</button>
+    </section>
+
+    <section class="panel active" data-panel="new">
+      <h2 class="panel-title">Tab 1: Post New Bounty</h2>
+      <form id="new-bounty-form">
+        <div class="grid">
+          <div class="field">
+            <label for="poster-name">Poster Name</label>
+            <input id="poster-name" name="poster_name" type="text" required>
+          </div>
+          <div class="field">
+            <label for="poster-email">Poster Email</label>
+            <input id="poster-email" name="poster_email" type="email" required>
+          </div>
+          <div class="field full">
+            <label for="title">Bounty Title</label>
+            <input id="title" name="title" type="text" required>
+          </div>
+          <div class="field full">
+            <label for="description">Description</label>
+            <textarea id="description" name="description" required></textarea>
+          </div>
+          <div class="field">
+            <label for="reward">Reward (ALGO)</label>
+            <input id="reward" name="reward" type="number" min="0.01" step="0.01" required>
+          </div>
+          <div class="field">
+            <label for="category">Category</label>
+            <select id="category" name="category" required>
+              <option value="Design">Design</option>
+              <option value="Development">Development</option>
+              <option value="Writing">Writing</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="deadline">Deadline</label>
+            <input id="deadline" name="deadline" type="date" required>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="btn btn-primary" id="create-btn">Create Bounty</button>
+          <span class="muted">Creates via POST /api/bounties</span>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel" data-panel="my">
+      <div class="row">
+        <h2 class="panel-title">Tab 2: My Bounties</h2>
+        <button type="button" class="btn" id="refresh-my-btn">Refresh</button>
+      </div>
+
+      <div class="spinner-wrap" id="my-spinner-wrap">
+        <div class="spinner" aria-label="Loading my bounties"></div>
+      </div>
+
+      <div id="my-bounties" class="bounty-list"></div>
+    </section>
+
+    <section class="panel" data-panel="tx">
+      <div class="row">
+        <h2 class="panel-title">Tab 3: Transactions Timeline</h2>
+        <button type="button" class="btn" id="refresh-tx-btn">Refresh</button>
+      </div>
+
+      <div class="spinner-wrap" id="tx-spinner-wrap">
+        <div class="spinner" aria-label="Loading transactions"></div>
+      </div>
+
+      <div id="tx-list" class="timeline"></div>
+    </section>
+  </main>
+
+  <div class="modal-backdrop" id="dispute-backdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="dispute-title">
+      <div class="modal-head">
+        <div class="modal-title" id="dispute-title">Raise Dispute</div>
+        <button type="button" class="btn" id="dispute-close">Close</button>
+      </div>
+
+      <form id="dispute-form">
+        <div class="field">
+          <label for="dispute-reason">Reason</label>
+          <textarea id="dispute-reason" name="reason" placeholder="Explain why this bounty is disputed" required></textarea>
+        </div>
+        <div class="actions">
+          <button type="submit" class="btn btn-warn" id="dispute-submit">Submit Dispute</button>
+          <span class="muted" id="dispute-target"></span>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="confirm-backdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+      <div class="modal-head">
+        <div class="modal-title" id="confirm-title">Confirm Action</div>
+      </div>
+      <p id="confirm-text" class="muted">Are you sure?</p>
+      <div class="actions">
+        <button type="button" class="btn" id="confirm-cancel">Cancel</button>
+        <button type="button" class="btn btn-danger" id="confirm-ok">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-wrap" id="toast-wrap" aria-live="polite"></div>
+
+  <script>
+    const state = {
+      user: null,
+      myBounties: [],
+      transactions: [],
+      selectedDisputeBounty: null,
+      confirmAction: null
+    };
+
+    const userChip = document.getElementById("user-chip");
+
+    const myBountiesNode = document.getElementById("my-bounties");
+    const mySpinnerNode = document.getElementById("my-spinner-wrap");
+
+    const txListNode = document.getElementById("tx-list");
+    const txSpinnerNode = document.getElementById("tx-spinner-wrap");
+
+    const disputeBackdrop = document.getElementById("dispute-backdrop");
+    const disputeForm = document.getElementById("dispute-form");
+    const disputeTarget = document.getElementById("dispute-target");
+    const disputeReasonInput = document.getElementById("dispute-reason");
+    const disputeSubmitBtn = document.getElementById("dispute-submit");
+    const disputeCloseBtn = document.getElementById("dispute-close");
+
+    const confirmBackdrop = document.getElementById("confirm-backdrop");
+    const confirmText = document.getElementById("confirm-text");
+    const confirmCancelBtn = document.getElementById("confirm-cancel");
+    const confirmOkBtn = document.getElementById("confirm-ok");
+
+    const toastWrapNode = document.getElementById("toast-wrap");
+
+    function parseLocalUser() {
+      const role = localStorage.getItem("userRole");
+      const raw = localStorage.getItem("user");
+      let parsedUser = null;
+
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === "object") {
+            parsedUser = parsed.user && typeof parsed.user === "object" ? parsed.user : parsed;
+          }
+        } catch (error) {
+          console.error("Failed to parse user from localStorage", error);
+        }
+      }
+
+      const userRole = role || (parsedUser && parsedUser.role) || "";
+      if (userRole.toLowerCase() !== "poster") {
+        window.location.href = "auth.html";
+        return null;
+      }
+
+      if (!role) {
+        localStorage.setItem("userRole", "poster");
+      }
+
+      return {
+        role: "poster",
+        name: (parsedUser && parsedUser.name) || "Poster",
+        email: (parsedUser && parsedUser.email) || ""
+      };
+    }
+
+    function showToast(message, type) {
+      const node = document.createElement("div");
+      node.className = "toast" + (type ? " " + type : "");
+      node.textContent = message;
+      toastWrapNode.appendChild(node);
+      setTimeout(() => node.remove(), 3000);
+    }
+
+    function setSpinner(node, loading) {
+      node.classList.toggle("active", loading);
+    }
+
+    function formatDate(value) {
+      if (!value) {
+        return "-";
+      }
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) {
+        return String(value);
+      }
+      return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    }
+
+    function statusClass(status) {
+      const s = String(status || "open").toLowerCase();
+      if (["open", "acquired", "disputed", "completed", "cancelled"].includes(s)) {
+        return s;
+      }
+      return "open";
+    }
+
+    function openConfirm(text, onConfirm, type) {
+      confirmText.textContent = text;
+      state.confirmAction = onConfirm;
+      confirmOkBtn.className = "btn " + (type || "btn-danger");
+      confirmBackdrop.classList.add("open");
+      confirmBackdrop.setAttribute("aria-hidden", "false");
+    }
+
+    function closeConfirm() {
+      state.confirmAction = null;
+      confirmBackdrop.classList.remove("open");
+      confirmBackdrop.setAttribute("aria-hidden", "true");
+    }
+
+    function openDisputeModal(bounty) {
+      state.selectedDisputeBounty = bounty;
+      disputeReasonInput.value = "";
+      disputeTarget.textContent = "Bounty: " + (bounty.title || "Untitled");
+      disputeBackdrop.classList.add("open");
+      disputeBackdrop.setAttribute("aria-hidden", "false");
+    }
+
+    function closeDisputeModal() {
+      state.selectedDisputeBounty = null;
+      disputeBackdrop.classList.remove("open");
+      disputeBackdrop.setAttribute("aria-hidden", "true");
+      disputeSubmitBtn.disabled = false;
+      disputeSubmitBtn.textContent = "Submit Dispute";
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll(".tab-btn").forEach((btn) => {
+        btn.classList.toggle("active", btn.getAttribute("data-tab") === tab);
+      });
+      document.querySelectorAll(".panel").forEach((panel) => {
+        panel.classList.toggle("active", panel.getAttribute("data-panel") === tab);
+      });
+
+      if (tab === "my") {
+        loadMyBounties();
+      }
+      if (tab === "tx") {
+        loadTransactions();
+      }
+    }
+
+    async function createBounty(event) {
+      event.preventDefault();
+      const form = event.target;
+      const createBtn = document.getElementById("create-btn");
+      const formData = new FormData(form);
+
+      const payload = {
+        poster_name: String(formData.get("poster_name") || "").trim(),
+        poster_email: String(formData.get("poster_email") || "").trim(),
+        title: String(formData.get("title") || "").trim(),
+        description: String(formData.get("description") || "").trim(),
+        reward: Number(formData.get("reward")),
+        category: String(formData.get("category") || "Other").trim(),
+        deadline: String(formData.get("deadline") || "")
+      };
+
+      if (!payload.poster_name || !payload.poster_email || !payload.title || !payload.description || !payload.deadline || !payload.reward) {
+        showToast("Fill all required fields", "");
+        return;
+      }
+
+      try {
+        createBtn.disabled = true;
+        createBtn.textContent = "Creating...";
+
+        const response = await fetch("/api/bounties", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}));
+          showToast(error.error || "Failed to create bounty", "");
+          return;
+        }
+
+        showToast("Bounty posted successfully", "success");
+        form.reset();
+        document.getElementById("poster-name").value = state.user.name || "";
+        document.getElementById("poster-email").value = state.user.email || "";
+        loadMyBounties();
+      } catch (error) {
+        console.error("Create bounty error", error);
+        showToast("Could not create bounty", "");
+      } finally {
+        createBtn.disabled = false;
+        createBtn.textContent = "Create Bounty";
+      }
+    }
+
+    function renderMyBounties() {
+      myBountiesNode.innerHTML = "";
+
+      if (!state.myBounties.length) {
+        myBountiesNode.innerHTML = '<div class="empty">No bounties found for your email.</div>';
+        return;
+      }
+
+      const fragment = document.createDocumentFragment();
+
+      state.myBounties.forEach((bounty) => {
+        const status = statusClass(bounty.status);
+        const card = document.createElement("article");
+        card.className = "bounty-card";
+
+        let actionsHtml = "";
+        let infoHtml = "";
+
+        if (status === "open") {
+          actionsHtml = '<button type="button" class="btn btn-danger action-delete" data-id="' + bounty.id + '">Delete</button>';
+        }
+
+        if (status === "acquired") {
+          actionsHtml =
+            '<button type="button" class="btn btn-success action-release" data-id="' + bounty.id + '">Release Payment</button>' +
+            '<button type="button" class="btn btn-warn action-dispute" data-id="' + bounty.id + '">Raise Dispute</button>';
+        }
+
+        if (status === "disputed") {
+          infoHtml = '<div class="info-banner">Awaiting arbitrator decision</div>';
+        }
+
+        card.innerHTML =
+          '<div class="row">' +
+            '<div>' +
+              '<h3>' + (bounty.title || "Untitled") + '</h3>' +
+              '<p class="muted">' + (bounty.description || "No description") + '</p>' +
+            '</div>' +
+            '<span class="status-badge status-' + status + '">' + status + '</span>' +
+          '</div>' +
+          '<div class="row muted">' +
+            '<span>Reward: ' + Number(bounty.reward || 0).toLocaleString() + ' ALGO</span>' +
+            '<span>Deadline: ' + formatDate(bounty.deadline) + '</span>' +
+          '</div>' +
+          infoHtml +
+          '<div class="actions">' + actionsHtml + '</div>';
+
+        fragment.appendChild(card);
+      });
+
+      myBountiesNode.appendChild(fragment);
+    }
+
+    async function loadMyBounties() {
+      if (!state.user) {
+        return;
+      }
+      setSpinner(mySpinnerNode, true);
+      myBountiesNode.innerHTML = "";
+
+      try {
+        const response = await fetch("/api/bounties");
+        if (!response.ok) {
+          throw new Error("Failed to load bounties");
+        }
+        const all = await response.json();
+        const email = String(state.user.email || "").toLowerCase();
+        state.myBounties = (Array.isArray(all) ? all : []).filter((b) => String(b.poster_email || "").toLowerCase() === email);
+        renderMyBounties();
+      } catch (error) {
+        console.error("Load my bounties error", error);
+        myBountiesNode.innerHTML = '<div class="empty">Unable to load bounties.</div>';
+      } finally {
+        setSpinner(mySpinnerNode, false);
+      }
+    }
+
+    async function deleteBounty(bountyId) {
+      try {
+        const response = await fetch("/api/bounties/" + bountyId, { method: "DELETE" });
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}));
+          showToast(error.error || "Delete failed", "");
+          return;
+        }
+        showToast("Bounty deleted", "success");
+        loadMyBounties();
+      } catch (error) {
+        console.error("Delete bounty error", error);
+        showToast("Could not delete bounty", "");
+      }
+    }
+
+    async function releasePayment(bountyId) {
+      try {
+        const txnId = "txn-" + bountyId + "-" + Date.now();
+        const response = await fetch("/api/bounties/" + bountyId + "/complete", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ txn_id: txnId })
+        });
+
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}));
+          showToast(error.error || "Release failed", "");
+          return;
+        }
+
+        showToast("Payment released. Bounty marked completed.", "success");
+        loadMyBounties();
+        loadTransactions();
+      } catch (error) {
+        console.error("Release payment error", error);
+        showToast("Could not release payment", "");
+      }
+    }
+
+    async function submitDispute(event) {
+      event.preventDefault();
+      if (!state.selectedDisputeBounty) {
+        return;
+      }
+
+      const reason = String(disputeReasonInput.value || "").trim();
+      if (!reason) {
+        showToast("Dispute reason is required", "");
+        return;
+      }
+
+      const bounty = state.selectedDisputeBounty;
+      openConfirm(
+        "Raise dispute for this bounty?",
+        async () => {
+          try {
+            disputeSubmitBtn.disabled = true;
+            disputeSubmitBtn.textContent = "Submitting...";
+
+            const response = await fetch("/api/bounties/" + bounty.id + "/dispute", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                raised_by: state.user.email || state.user.name || "poster",
+                reason,
+                evidence: null
+              })
+            });
+
+            if (!response.ok) {
+              const error = await response.json().catch(() => ({}));
+              showToast(error.error || "Failed to raise dispute", "");
+              disputeSubmitBtn.disabled = false;
+              disputeSubmitBtn.textContent = "Submit Dispute";
+              return;
+            }
+
+            closeDisputeModal();
+            showToast("Dispute raised. ALGO is locked. Arbitrator notified.", "success");
+            loadMyBounties();
+            loadTransactions();
+          } catch (error) {
+            console.error("Dispute error", error);
+            showToast("Could not raise dispute", "");
+            disputeSubmitBtn.disabled = false;
+            disputeSubmitBtn.textContent = "Submit Dispute";
+          }
+        },
+        "btn-warn"
+      );
+    }
+
+    function renderTransactions() {
+      txListNode.innerHTML = "";
+
+      if (!state.transactions.length) {
+        txListNode.innerHTML = '<div class="empty">No transactions yet for your bounties.</div>';
+        return;
+      }
+
+      const fragment = document.createDocumentFragment();
+
+      state.transactions.forEach((tx) => {
+        const item = document.createElement("article");
+        item.className = "timeline-item";
+        item.innerHTML =
+          '<h4>' + (tx.description || tx.event_type || "Transaction event") + '</h4>' +
+          '<div class="timeline-meta">Type: ' + (tx.event_type || "-") + '</div>' +
+          '<div class="timeline-meta">Amount: ' + Number(tx.amount || 0).toLocaleString() + ' ALGO</div>' +
+          '<div class="timeline-meta">Date: ' + formatDate(tx.created_at) + '</div>' +
+          '<div class="timeline-meta">Bounty ID: ' + (tx.bounty_id || "-") + '</div>';
+        fragment.appendChild(item);
+      });
+
+      txListNode.appendChild(fragment);
+    }
+
+    async function loadTransactions() {
+      setSpinner(txSpinnerNode, true);
+      txListNode.innerHTML = "";
+
+      try {
+        if (!state.myBounties.length) {
+          await loadMyBounties();
+        }
+        const myIds = new Set(state.myBounties.map((b) => Number(b.id)));
+
+        const response = await fetch("/api/transactions");
+        if (!response.ok) {
+          throw new Error("Failed to load transactions");
+        }
+
+        const allTx = await response.json();
+        state.transactions = (Array.isArray(allTx) ? allTx : []).filter((tx) => myIds.has(Number(tx.bounty_id)));
+        renderTransactions();
+      } catch (error) {
+        console.error("Load transactions error", error);
+        txListNode.innerHTML = '<div class="empty">Unable to load transactions.</div>';
+      } finally {
+        setSpinner(txSpinnerNode, false);
+      }
+    }
+
+    function bindEvents() {
+      document.querySelectorAll(".tab-btn").forEach((btn) => {
+        btn.addEventListener("click", () => switchTab(btn.getAttribute("data-tab")));
+      });
+
+      document.getElementById("new-bounty-form").addEventListener("submit", createBounty);
+      document.getElementById("refresh-my-btn").addEventListener("click", loadMyBounties);
+      document.getElementById("refresh-tx-btn").addEventListener("click", loadTransactions);
+
+      myBountiesNode.addEventListener("click", (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) {
+          return;
+        }
+
+        const deleteBtn = target.closest(".action-delete");
+        if (deleteBtn) {
+          const bountyId = Number(deleteBtn.getAttribute("data-id"));
+          openConfirm(
+            "Delete this open bounty? This cannot be undone.",
+            () => deleteBounty(bountyId),
+            "btn-danger"
+          );
+          return;
+        }
+
+        const releaseBtn = target.closest(".action-release");
+        if (releaseBtn) {
+          const bountyId = Number(releaseBtn.getAttribute("data-id"));
+          openConfirm(
+            "Release payment and mark this bounty as completed?",
+            () => releasePayment(bountyId),
+            "btn-success"
+          );
+          return;
+        }
+
+        const disputeBtn = target.closest(".action-dispute");
+        if (disputeBtn) {
+          const bountyId = Number(disputeBtn.getAttribute("data-id"));
+          const bounty = state.myBounties.find((b) => Number(b.id) === bountyId);
+          if (bounty) {
+            openDisputeModal(bounty);
+          }
+        }
+      });
+
+      disputeCloseBtn.addEventListener("click", closeDisputeModal);
+      disputeBackdrop.addEventListener("click", (event) => {
+        if (event.target === disputeBackdrop) {
+          closeDisputeModal();
+        }
+      });
+      disputeForm.addEventListener("submit", submitDispute);
+
+      confirmCancelBtn.addEventListener("click", closeConfirm);
+      confirmBackdrop.addEventListener("click", (event) => {
+        if (event.target === confirmBackdrop) {
+          closeConfirm();
+        }
+      });
+      confirmOkBtn.addEventListener("click", async () => {
+        const action = state.confirmAction;
+        closeConfirm();
+        if (typeof action === "function") {
+          await action();
+        }
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          if (disputeBackdrop.classList.contains("open")) {
+            closeDisputeModal();
+          }
+          if (confirmBackdrop.classList.contains("open")) {
+            closeConfirm();
+          }
+        }
+      });
+    }
+
+    function init() {
+      state.user = parseLocalUser();
+      if (!state.user) {
+        return;
+      }
+
+      userChip.textContent = (state.user.name || "Poster") + " | " + (state.user.email || "no-email") + " | role: poster";
+      document.getElementById("poster-name").value = state.user.name || "";
+      document.getElementById("poster-email").value = state.user.email || "";
+
+      bindEvents();
+      loadMyBounties();
+    }
+
+    init();
+  </script>
+</body>
+</html>
