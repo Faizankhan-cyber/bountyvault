@@ -286,6 +286,37 @@
       font-size: 0.86rem;
     }
 
+    .applicants-block {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(15, 23, 42, 0.35);
+      padding: 0.62rem;
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .applicants-title {
+      font-size: 0.84rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .applicant-item {
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 8px;
+      padding: 0.48rem 0.55rem;
+      background: rgba(15, 23, 42, 0.3);
+      display: grid;
+      gap: 0.2rem;
+      font-size: 0.85rem;
+    }
+
+    .applicant-name {
+      font-weight: 700;
+      color: #dbeafe;
+    }
+
     .empty {
       border: 1px dashed var(--border);
       border-radius: 12px;
@@ -522,6 +553,7 @@
     const state = {
       user: null,
       myBounties: [],
+      applicantsByBounty: new Map(),
       transactions: [],
       selectedDisputeBounty: null,
       confirmAction: null
@@ -724,6 +756,7 @@
         const status = statusClass(bounty.status);
         const card = document.createElement("article");
         card.className = "bounty-card";
+        const applicants = state.applicantsByBounty.get(Number(bounty.id)) || [];
 
         let actionsHtml = "";
         let infoHtml = "";
@@ -742,6 +775,20 @@
           infoHtml = '<div class="info-banner">Awaiting arbitrator decision</div>';
         }
 
+        const applicantsHtml = applicants.length
+          ? '<div class="applicants-block">' +
+              '<div class="applicants-title">Applicants (' + applicants.length + ')</div>' +
+              applicants.map((app) => (
+                '<div class="applicant-item">' +
+                  '<div class="applicant-name">' + (app.worker_name || app.name || "Unknown") + '</div>' +
+                  '<div class="muted">Email: ' + (app.worker_email || app.email || "-") + '</div>' +
+                  '<div class="muted">Skills: ' + (app.worker_skills || app.skills || "-") + '</div>' +
+                  '<div class="muted">Reason: ' + (app.worker_reason || app.reason || "-") + '</div>' +
+                '</div>'
+              )).join("") +
+            '</div>'
+          : '<div class="muted">No applicants yet.</div>';
+
         card.innerHTML =
           '<div class="row">' +
             '<div>' +
@@ -754,6 +801,7 @@
             '<span>Reward: ' + Number(bounty.reward || 0).toLocaleString() + ' ALGO</span>' +
             '<span>Deadline: ' + formatDate(bounty.deadline) + '</span>' +
           '</div>' +
+          applicantsHtml +
           infoHtml +
           '<div class="actions">' + actionsHtml + '</div>';
 
@@ -761,6 +809,37 @@
       });
 
       myBountiesNode.appendChild(fragment);
+    }
+
+    async function loadApplicantsForMyBounties() {
+      state.applicantsByBounty = new Map();
+      if (!state.myBounties.length) {
+        return;
+      }
+
+      const results = await Promise.all(
+        state.myBounties.map(async (bounty) => {
+          const bountyId = Number(bounty.id);
+          try {
+            const response = await fetch("/api/bounties/" + bountyId + "/applicants");
+            if (!response.ok) {
+              console.log("[POSTER][APPLICANTS] fetch failed", { bountyId, status: response.status });
+              return { bountyId, applicants: [] };
+            }
+            const data = await response.json();
+            const applicants = Array.isArray(data) ? data : [];
+            console.log("[POSTER][APPLICANTS] fetched", { bountyId, count: applicants.length, applicants });
+            return { bountyId, applicants };
+          } catch (error) {
+            console.error("[POSTER][APPLICANTS] fetch error", { bountyId, error });
+            return { bountyId, applicants: [] };
+          }
+        })
+      );
+
+      results.forEach((item) => {
+        state.applicantsByBounty.set(Number(item.bountyId), item.applicants);
+      });
     }
 
     async function loadMyBounties() {
@@ -778,6 +857,8 @@
         const all = await response.json();
         const email = String(state.user.email || "").toLowerCase();
         state.myBounties = (Array.isArray(all) ? all : []).filter((b) => String(b.poster_email || "").toLowerCase() === email);
+
+        await loadApplicantsForMyBounties();
         renderMyBounties();
       } catch (error) {
         console.error("Load my bounties error", error);

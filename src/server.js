@@ -4,7 +4,7 @@ const fs = require("fs");
 const Database = require("better-sqlite3");
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 app.use(cors());
 app.use(express.json());
@@ -275,6 +275,8 @@ app.get("/api/bounties/:id/applicants", (req, res) => {
     const applicants = db
       .prepare("SELECT * FROM applicants WHERE bounty_id = ? ORDER BY id DESC")
       .all(bountyId);
+
+    console.log("[APPLICANTS][FETCH] bounty_id=", bountyId, "count=", applicants.length);
     return res.json(applicants);
   } catch (error) {
     return res.status(500).json({ error: error.message });
@@ -283,6 +285,8 @@ app.get("/api/bounties/:id/applicants", (req, res) => {
 
 app.post("/api/bounties/:id/applicants", (req, res) => {
   try {
+    console.log("[APPLICANTS][CREATE] request body:", req.body);
+
     const bountyId = parseId(req.params.id);
     if (!bountyId) {
       return res.status(400).json({ error: "invalid bounty id" });
@@ -296,7 +300,19 @@ app.post("/api/bounties/:id/applicants", (req, res) => {
       return res.status(400).json({ error: "applications are allowed only when bounty is open" });
     }
 
-    const { worker_name, worker_email, worker_skills, worker_reason } = req.body;
+    const worker_name = String(
+      (req.body && (req.body.worker_name || req.body.name)) || ""
+    ).trim();
+    const worker_email = String(
+      (req.body && (req.body.worker_email || req.body.email)) || ""
+    ).trim().toLowerCase();
+    const worker_skills = String(
+      (req.body && (req.body.worker_skills || req.body.skills)) || ""
+    ).trim();
+    const worker_reason = String(
+      (req.body && (req.body.worker_reason || req.body.reason)) || ""
+    ).trim();
+
     if (!worker_name || !worker_email || !worker_skills || !worker_reason) {
       return res.status(400).json({ error: "missing required applicant fields" });
     }
@@ -310,6 +326,7 @@ app.post("/api/bounties/:id/applicants", (req, res) => {
       .run(bountyId, worker_name, worker_email, worker_skills, worker_reason);
 
     const applicant = db.prepare("SELECT * FROM applicants WHERE id = ?").get(result.lastInsertRowid);
+    console.log("[APPLICANTS][CREATE] saved applicant id=", applicant && applicant.id, "for bounty_id=", bountyId);
     return res.status(201).json(applicant);
   } catch (error) {
     return res.status(500).json({ error: error.message });

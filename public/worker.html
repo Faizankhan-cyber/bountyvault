@@ -787,6 +787,11 @@
         submitApplyBtn.disabled = true;
         submitApplyBtn.textContent = "Submitting...";
 
+        console.log("[WORKER][APPLY] submitting", {
+          bountyId: state.selectedBountyId,
+          payload
+        });
+
         const response = await fetch("/api/bounties/" + state.selectedBountyId + "/applicants", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -795,11 +800,15 @@
 
         if (!response.ok) {
           const err = await response.json().catch(() => ({}));
+          console.log("[WORKER][APPLY] failed", { bountyId: state.selectedBountyId, error: err });
           showToast(err.error || "Application failed", "error");
           submitApplyBtn.disabled = false;
           submitApplyBtn.textContent = "Submit Application";
           return;
         }
+
+        const created = await response.json();
+        console.log("[WORKER][APPLY] saved", created);
 
         showToast("Application submitted", "success");
         closeApplyModal();
