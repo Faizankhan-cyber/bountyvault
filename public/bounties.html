@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BountyVault | Public Bounties</title>
+  <style>
+    :root {
+      --bg: #0f0f23;
+      --card: #1a1a2e;
+      --accent: #6366f1;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --border: rgba(148, 163, 184, 0.2);
+      --open: #6366f1;
+      --acquired: #3b82f6;
+      --disputed: #ef4444;
+      --completed: #22c55e;
+      --cancelled: #6b7280;
+      --success: #22c55e;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: "Space Grotesk", "Segoe UI", sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at 15% 10%, rgba(99, 102, 241, 0.2), transparent 38%),
+                  radial-gradient(circle at 82% 90%, rgba(99, 102, 241, 0.15), transparent 40%),
+                  var(--bg);
+      min-height: 100vh;
+      line-height: 1.4;
+    }
+
+    .container {
+      width: min(1160px, 92vw);
+      margin: 0 auto;
+      padding: 1.25rem 0 2rem;
+    }
+
+    .header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: end;
+      gap: 0.8rem;
+      margin-bottom: 1.1rem;
+    }
+
+    .title {
+      font-size: clamp(1.4rem, 3vw, 2rem);
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin-top: 0.3rem;
+      font-size: 0.95rem;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    .filter-bar {
+      display: grid;
+      grid-template-columns: 1.4fr repeat(3, minmax(160px, 0.6fr));
+      gap: 0.65rem;
+      background: rgba(26, 26, 46, 0.8);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+      backdrop-filter: blur(8px);
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.28rem;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    input,
+    select,
+    textarea {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--card);
+      color: var(--text);
+      padding: 0.62rem 0.7rem;
+      font-size: 0.92rem;
+      font-family: inherit;
+      outline: none;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+    }
+
+    .spinner-wrap {
+      display: none;
+      justify-content: center;
+      padding: 2.4rem 0;
+    }
+
+    .spinner-wrap.active {
+      display: flex;
+    }
+
+    .spinner {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 4px solid rgba(148, 163, 184, 0.25);
+      border-top-color: var(--accent);
+      animation: spin 0.9s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.85rem;
+    }
+
+    .card {
+      background: linear-gradient(160deg, var(--card), #17172a);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 0.9rem;
+      display: grid;
+      gap: 0.7rem;
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 0.7rem;
+    }
+
+    .card h3 {
+      font-size: 1.03rem;
+      line-height: 1.3;
+      margin-bottom: 0.24rem;
+    }
+
+    .desc {
+      color: var(--muted);
+      font-size: 0.9rem;
+      min-height: 2.6em;
+    }
+
+    .reward {
+      padding: 0.35rem 0.55rem;
+      border-radius: 9px;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      white-space: nowrap;
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: #c7d2fe;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      align-items: center;
+      color: #cbd5e1;
+      font-size: 0.84rem;
+    }
+
+    .badge {
+      border-radius: 999px;
+      padding: 0.22rem 0.58rem;
+      font-size: 0.75rem;
+      border: 1px solid transparent;
+      text-transform: capitalize;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .category {
+      background: rgba(148, 163, 184, 0.12);
+      border-color: rgba(148, 163, 184, 0.3);
+      color: #cbd5e1;
+    }
+
+    .status-open {
+      background: rgba(99, 102, 241, 0.2);
+      border-color: rgba(99, 102, 241, 0.5);
+      color: #c7d2fe;
+    }
+
+    .status-acquired {
+      background: rgba(59, 130, 246, 0.18);
+      border-color: rgba(59, 130, 246, 0.42);
+      color: #bfdbfe;
+    }
+
+    .status-disputed {
+      background: rgba(239, 68, 68, 0.18);
+      border-color: rgba(239, 68, 68, 0.44);
+      color: #fecaca;
+      font-weight: 700;
+    }
+
+    .status-completed {
+      background: rgba(34, 197, 94, 0.2);
+      border-color: rgba(34, 197, 94, 0.45);
+      color: #bbf7d0;
+    }
+
+    .status-cancelled {
+      background: rgba(107, 114, 128, 0.2);
+      border-color: rgba(107, 114, 128, 0.45);
+      color: #d1d5db;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.65rem;
+      margin-top: 0.15rem;
+    }
+
+    .btn {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--card);
+      color: var(--text);
+      padding: 0.5rem 0.7rem;
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .btn:hover {
+      border-color: var(--accent);
+    }
+
+    .btn-primary {
+      background: linear-gradient(90deg, var(--accent), #4f46e5);
+      border-color: rgba(99, 102, 241, 0.5);
+      color: white;
+    }
+
+    .btn:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    .applied-badge {
+      color: #86efac;
+      border: 1px solid rgba(34, 197, 94, 0.5);
+      background: rgba(34, 197, 94, 0.12);
+      border-radius: 999px;
+      padding: 0.22rem 0.55rem;
+      font-size: 0.74rem;
+    }
+
+    .empty-state {
+      display: none;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.2rem;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .empty-state.active {
+      display: block;
+    }
+
+    .empty-state .btn {
+      margin-top: 0.85rem;
+    }
+
+    .toast-wrap {
+      position: fixed;
+      right: 12px;
+      bottom: 12px;
+      z-index: 90;
+      display: grid;
+      gap: 0.45rem;
+      width: min(320px, calc(100vw - 24px));
+    }
+
+    .toast {
+      padding: 0.7rem 0.8rem;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      background: #111827;
+      color: #e5e7eb;
+      font-size: 0.88rem;
+    }
+
+    .toast.success {
+      border-color: rgba(34, 197, 94, 0.5);
+      background: rgba(34, 197, 94, 0.16);
+      color: #dcfce7;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.72);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: 1rem;
+      z-index: 100;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal {
+      width: min(620px, 100%);
+      background: #1a1a2e;
+      color: #e2e8f0;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1rem;
+      display: grid;
+      gap: 0.7rem;
+    }
+
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .modal-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .modal-close {
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      border-radius: 8px;
+      padding: 0.3rem 0.5rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    .modal-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.65rem;
+    }
+
+    .modal-grid .full {
+      grid-column: 1 / -1;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 90px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 980px) {
+      .cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .filter-bar {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .filter-bar .search-field {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .cards {
+        grid-template-columns: 1fr;
+      }
+
+      .filter-bar {
+        grid-template-columns: 1fr;
+      }
+
+      .modal-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 375px) {
+      .container {
+        width: 94vw;
+      }
+
+      .cards {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <section class="header">
+      <div>
+        <h1 class="title">Open Bounties</h1>
+        <p class="subtitle">Public board of active and historical bounty listings.</p>
+      </div>
+      <div class="meta" id="results-meta">Loading bounties...</div>
+    </section>
+
+    <section class="filter-bar" aria-label="Bounty filters">
+      <div class="field search-field">
+        <label for="search">Search Title</label>
+        <input id="search" type="text" placeholder="Type to filter by title...">
+      </div>
+
+      <div class="field">
+        <label for="category">Category</label>
+        <select id="category">
+          <option value="all">All</option>
+          <option value="design">Design</option>
+          <option value="development">Development</option>
+          <option value="writing">Writing</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="status">Status</label>
+        <select id="status">
+          <option value="all">All</option>
+          <option value="open">Open</option>
+          <option value="acquired">Acquired</option>
+          <option value="disputed">Disputed</option>
+          <option value="completed">Completed</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="sort">Sort</label>
+        <select id="sort">
+          <option value="newest">Newest</option>
+          <option value="highest_reward">Highest Reward</option>
+          <option value="deadline_soonest">Deadline Soonest</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="spinner-wrap active" id="spinner-wrap" aria-live="polite">
+      <div class="spinner" aria-label="Loading bounties"></div>
+    </section>
+
+    <section class="empty-state" id="empty-state">
+      <p id="empty-text">No bounties found for the selected filters.</p>
+      <button class="btn" id="refresh-btn" type="button">Refresh</button>
+    </section>
+
+    <section class="cards" id="cards"></section>
+  </main>
+
+  <div class="modal-backdrop" id="apply-backdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="apply-title">
+      <div class="modal-head">
+        <div class="modal-title" id="apply-title">Apply to Bounty</div>
+        <button type="button" class="modal-close" id="modal-close">Close</button>
+      </div>
+
+      <form id="apply-form">
+        <div class="modal-grid">
+          <div class="field">
+            <label for="worker-name">Name</label>
+            <input id="worker-name" name="worker_name" type="text" required>
+          </div>
+          <div class="field">
+            <label for="worker-email">Email</label>
+            <input id="worker-email" name="worker_email" type="email" required>
+          </div>
+          <div class="field full">
+            <label for="worker-skills">Skills</label>
+            <input id="worker-skills" name="worker_skills" type="text" placeholder="Solidity, React, Python" required>
+          </div>
+          <div class="field full">
+            <label for="worker-reason">Why are you a good fit?</label>
+            <textarea id="worker-reason" name="worker_reason" required></textarea>
+          </div>
+        </div>
+        <div class="actions">
+          <span class="meta" id="apply-target"></span>
+          <button type="submit" class="btn btn-primary" id="apply-submit">Submit Application</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast-wrap" id="toast-wrap" aria-live="polite"></div>
+
+  <script>
+    const state = {
+      allBounties: [],
+      visibleBounties: [],
+      appliedIds: new Set(),
+      selectedBountyId: null,
+      selectedBountyTitle: ""
+    };
+
+    const cardsNode = document.getElementById("cards");
+    const spinnerNode = document.getElementById("spinner-wrap");
+    const emptyNode = document.getElementById("empty-state");
+    const emptyTextNode = document.getElementById("empty-text");
+    const resultsMetaNode = document.getElementById("results-meta");
+    const toastWrapNode = document.getElementById("toast-wrap");
+
+    const searchInput = document.getElementById("search");
+    const categorySelect = document.getElementById("category");
+    const statusSelect = document.getElementById("status");
+    const sortSelect = document.getElementById("sort");
+    const refreshBtn = document.getElementById("refresh-btn");
+
+    const applyBackdrop = document.getElementById("apply-backdrop");
+    const applyForm = document.getElementById("apply-form");
+    const applyTargetNode = document.getElementById("apply-target");
+    const modalCloseBtn = document.getElementById("modal-close");
+    const applySubmitBtn = document.getElementById("apply-submit");
+
+    function safeText(value, fallback) {
+      if (value === null || value === undefined || value === "") {
+        return fallback;
+      }
+      return String(value);
+    }
+
+    function truncate(text, max) {
+      const content = safeText(text, "");
+      if (content.length <= max) {
+        return content;
+      }
+      return content.slice(0, max - 1).trimEnd() + "...";
+    }
+
+    function normalizeStatus(status) {
+      const value = safeText(status, "open").toLowerCase();
+      if (["open", "acquired", "disputed", "completed", "cancelled"].includes(value)) {
+        return value;
+      }
+      return "open";
+    }
+
+    function normalizeCategory(category) {
+      const value = safeText(category, "Other").trim();
+      if (!value) {
+        return "Other";
+      }
+      return value;
+    }
+
+    function getSessionUser() {
+      const raw = localStorage.getItem("user");
+      if (!raw) {
+        return null;
+      }
+
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          if (parsed.user && typeof parsed.user === "object") {
+            return parsed.user;
+          }
+          return parsed;
+        }
+      } catch (error) {
+        console.error("Failed to parse localStorage user:", error);
+      }
+      return null;
+    }
+
+    function formatReward(value) {
+      const num = Number(value);
+      if (!Number.isFinite(num)) {
+        return safeText(value, "0");
+      }
+      return "$" + num.toLocaleString();
+    }
+
+    function formatDeadline(value) {
+      if (!value) {
+        return "No deadline";
+      }
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) {
+        return safeText(value, "No deadline");
+      }
+      return date.toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric"
+      });
+    }
+
+    function statusBadge(status) {
+      if (status === "disputed") {
+        return '<span class="badge status-disputed">! disputed</span>';
+      }
+      return '<span class="badge status-' + status + '">' + status + "</span>";
+    }
+
+    function showToast(message, type) {
+      const node = document.createElement("div");
+      node.className = "toast" + (type ? " " + type : "");
+      node.textContent = message;
+      toastWrapNode.appendChild(node);
+
+      setTimeout(() => {
+        node.remove();
+      }, 2800);
+    }
+
+    function setLoading(isLoading) {
+      spinnerNode.classList.toggle("active", isLoading);
+    }
+
+    function toTimestamp(value, fallback) {
+      const t = new Date(value).getTime();
+      if (Number.isNaN(t)) {
+        return fallback;
+      }
+      return t;
+    }
+
+    function filterAndSort() {
+      const search = searchInput.value.trim().toLowerCase();
+      const category = categorySelect.value;
+      const status = statusSelect.value;
+      const sort = sortSelect.value;
+
+      let list = state.allBounties.filter((bounty) => {
+        const matchesSearch = safeText(bounty.title, "").toLowerCase().includes(search);
+        const bountyCategory = normalizeCategory(bounty.category).toLowerCase();
+        const matchesCategory = category === "all" || bountyCategory === category;
+        const bountyStatus = normalizeStatus(bounty.status);
+        const matchesStatus = status === "all" || bountyStatus === status;
+        return matchesSearch && matchesCategory && matchesStatus;
+      });
+
+      list.sort((a, b) => {
+        if (sort === "highest_reward") {
+          return Number(b.reward || 0) - Number(a.reward || 0);
+        }
+
+        if (sort === "deadline_soonest") {
+          const aDeadline = toTimestamp(a.deadline, Number.POSITIVE_INFINITY);
+          const bDeadline = toTimestamp(b.deadline, Number.POSITIVE_INFINITY);
+          return aDeadline - bDeadline;
+        }
+
+        const aCreated = toTimestamp(a.created_at, Number(a.id) || 0);
+        const bCreated = toTimestamp(b.created_at, Number(b.id) || 0);
+        return bCreated - aCreated;
+      });
+
+      state.visibleBounties = list;
+      renderCards();
+    }
+
+    function renderCards() {
+      cardsNode.innerHTML = "";
+      const total = state.allBounties.length;
+      const visible = state.visibleBounties.length;
+      resultsMetaNode.textContent = visible + " of " + total + " bounties";
+
+      if (!visible) {
+        emptyTextNode.textContent = total
+          ? "No bounties found for the selected filters."
+          : "No bounties available right now.";
+        emptyNode.classList.add("active");
+        return;
+      }
+
+      emptyNode.classList.remove("active");
+
+      const fragment = document.createDocumentFragment();
+      state.visibleBounties.forEach((bounty) => {
+        const status = normalizeStatus(bounty.status);
+        const id = Number(bounty.id);
+        const isOpen = status === "open";
+        const isApplied = state.appliedIds.has(id);
+
+        const card = document.createElement("article");
+        card.className = "card";
+        card.innerHTML =
+          '<div class="card-top">' +
+            '<div>' +
+              '<h3>' + safeText(bounty.title, "Untitled bounty") + "</h3>" +
+              '<p class="desc">' + truncate(safeText(bounty.description, "No description provided."), 100) + "</p>" +
+            "</div>" +
+            '<div class="reward">&#128274; ' + formatReward(bounty.reward) + "</div>" +
+          "</div>" +
+          '<div class="meta-row">' +
+            '<span>Poster: ' + safeText(bounty.poster_name, "Unknown") + "</span>" +
+            '<span class="badge category">' + normalizeCategory(bounty.category) + "</span>" +
+            '<span>Deadline: ' + formatDeadline(bounty.deadline) + "</span>" +
+          "</div>" +
+          '<div class="meta-row">' + statusBadge(status) + "</div>" +
+          '<div class="actions">' +
+            (isApplied
+              ? '<span class="applied-badge">Applied</span>'
+              : (isOpen
+                ? '<button type="button" class="btn btn-primary apply-btn" data-id="' + id + '" data-title="' + safeText(bounty.title, "") + '">Apply Now</button>'
+                : '<button type="button" class="btn" disabled>Apply Now</button>')) +
+          "</div>";
+
+        fragment.appendChild(card);
+      });
+
+      cardsNode.appendChild(fragment);
+    }
+
+    function openApplyModal(bountyId, bountyTitle) {
+      const user = getSessionUser();
+      if (!user) {
+        window.location.href = "auth.html";
+        return;
+      }
+
+      const role = safeText(user.role, "").toLowerCase();
+      if (role !== "worker") {
+        showToast("Only workers can apply", "");
+        return;
+      }
+
+      state.selectedBountyId = bountyId;
+      state.selectedBountyTitle = bountyTitle || "Selected bounty";
+      applyTargetNode.textContent = "Applying to: " + state.selectedBountyTitle;
+
+      document.getElementById("worker-name").value = safeText(user.name, "");
+      document.getElementById("worker-email").value = safeText(user.email, "");
+      document.getElementById("worker-skills").value = "";
+      document.getElementById("worker-reason").value = "";
+
+      applyBackdrop.classList.add("open");
+      applyBackdrop.setAttribute("aria-hidden", "false");
+    }
+
+    function closeApplyModal() {
+      state.selectedBountyId = null;
+      state.selectedBountyTitle = "";
+      applyBackdrop.classList.remove("open");
+      applyBackdrop.setAttribute("aria-hidden", "true");
+      applySubmitBtn.disabled = false;
+      applySubmitBtn.textContent = "Submit Application";
+    }
+
+    async function submitApplication(event) {
+      event.preventDefault();
+      if (!state.selectedBountyId) {
+        return;
+      }
+
+      const formData = new FormData(applyForm);
+      const payload = {
+        worker_name: safeText(formData.get("worker_name"), "").trim(),
+        worker_email: safeText(formData.get("worker_email"), "").trim(),
+        worker_skills: safeText(formData.get("worker_skills"), "").trim(),
+        worker_reason: safeText(formData.get("worker_reason"), "").trim()
+      };
+
+      if (!payload.worker_name || !payload.worker_email || !payload.worker_skills || !payload.worker_reason) {
+        showToast("Please complete all fields", "");
+        return;
+      }
+
+      try {
+        applySubmitBtn.disabled = true;
+        applySubmitBtn.textContent = "Submitting...";
+
+        const response = await fetch("/api/bounties/" + state.selectedBountyId + "/applicants", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}));
+          showToast(error.error || "Failed to apply", "");
+          applySubmitBtn.disabled = false;
+          applySubmitBtn.textContent = "Submit Application";
+          return;
+        }
+
+        state.appliedIds.add(Number(state.selectedBountyId));
+        renderCards();
+        closeApplyModal();
+        showToast("Application submitted successfully", "success");
+      } catch (error) {
+        console.error("Apply error:", error);
+        showToast("Unable to submit application", "");
+        applySubmitBtn.disabled = false;
+        applySubmitBtn.textContent = "Submit Application";
+      }
+    }
+
+    async function loadBounties() {
+      setLoading(true);
+      emptyNode.classList.remove("active");
+      cardsNode.innerHTML = "";
+      resultsMetaNode.textContent = "Loading bounties...";
+
+      try {
+        const response = await fetch("/api/bounties");
+        if (!response.ok) {
+          throw new Error("Failed to fetch bounties");
+        }
+
+        const bounties = await response.json();
+        state.allBounties = Array.isArray(bounties) ? bounties : [];
+        filterAndSort();
+      } catch (error) {
+        console.error("Error loading bounties:", error);
+        state.allBounties = [];
+        state.visibleBounties = [];
+        renderCards();
+        emptyTextNode.textContent = "Could not load bounties. Try refreshing.";
+        emptyNode.classList.add("active");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    searchInput.addEventListener("input", filterAndSort);
+    categorySelect.addEventListener("change", filterAndSort);
+    statusSelect.addEventListener("change", filterAndSort);
+    sortSelect.addEventListener("change", filterAndSort);
+
+    refreshBtn.addEventListener("click", loadBounties);
+
+    cardsNode.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+      const btn = target.closest(".apply-btn");
+      if (!btn) {
+        return;
+      }
+
+      const id = Number(btn.getAttribute("data-id"));
+      const title = btn.getAttribute("data-title") || "Selected bounty";
+      openApplyModal(id, title);
+    });
+
+    modalCloseBtn.addEventListener("click", closeApplyModal);
+    applyBackdrop.addEventListener("click", (event) => {
+      if (event.target === applyBackdrop) {
+        closeApplyModal();
+      }
+    });
+    applyForm.addEventListener("submit", submitApplication);
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && applyBackdrop.classList.contains("open")) {
+        closeApplyModal();
+      }
+    });
+
+    loadBounties();
+  </script>
+</body>
+</html>
