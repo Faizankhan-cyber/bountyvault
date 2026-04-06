@@ -336,6 +336,10 @@
       margin-bottom: 3.4rem;
     }
 
+    #how-it-works {
+      scroll-margin-top: 90px;
+    }
+
     .section-head {
       margin-bottom: 1.1rem;
       font-size: 1.55rem;
@@ -514,7 +518,7 @@
       </p>
       <div class="hero-actions">
         <a class="btn btn-primary" href="auth.html">Launch BountyVault</a>
-        <a class="btn btn-ghost" href="#how-it-works">View flow</a>
+        <a class="btn btn-ghost" id="learn-more-btn" href="#how-it-works">Learn More</a>
       </div>
       <div class="search-wrap" aria-label="Search bounties">
         <form class="search-form" id="bounty-search-form">
@@ -631,6 +635,8 @@
     const searchInput = document.getElementById("bounty-search-input");
     const bountyResults = document.getElementById("bounty-results");
     const bountyResultMeta = document.getElementById("bounty-result-meta");
+    const learnMoreBtn = document.getElementById("learn-more-btn");
+    const howItWorksSection = document.getElementById("how-it-works");
 
     function labelize(key) {
       return key
@@ -759,6 +765,13 @@
     }
 
     function bindEvents() {
+      if (learnMoreBtn && howItWorksSection) {
+        learnMoreBtn.addEventListener("click", (event) => {
+          event.preventDefault();
+          howItWorksSection.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      }
+
       searchForm.addEventListener("submit", (event) => {
         event.preventDefault();
         applyBountySearch();
