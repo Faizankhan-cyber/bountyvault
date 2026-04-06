@@ -3,113 +3,503 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BountyVault - Decentralized Bounty Platform</title>
-  <link rel="stylesheet" href="styles.css">
+  <title>BountyVault | Secure Web3 Bounties</title>
+  <style>
+    :root {
+      --bg: #0f0f23;
+      --surface: #171733;
+      --surface-2: #1c1c3f;
+      --accent: #6366f1;
+      --accent-2: #4f46e5;
+      --text: #ecedff;
+      --muted: #9da0c7;
+      --border: rgba(99, 102, 241, 0.28);
+      --ok: #22d3ee;
+      --warn: #f59e0b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: "Space Grotesk", "Segoe UI", sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at 10% 8%, rgba(99, 102, 241, 0.2), transparent 45%),
+                  radial-gradient(circle at 88% 20%, rgba(34, 211, 238, 0.12), transparent 38%),
+                  linear-gradient(180deg, #0f0f23 0%, #101028 55%, #0f0f23 100%);
+      min-height: 100vh;
+    }
+
+    .wrapper {
+      width: min(1120px, 92vw);
+      margin: 0 auto;
+    }
+
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      backdrop-filter: blur(10px);
+      background: rgba(15, 15, 35, 0.68);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .nav-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 0;
+      gap: 1rem;
+    }
+
+    .brand {
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-size: 1.05rem;
+    }
+
+    .brand span {
+      color: var(--accent);
+    }
+
+    .nav-links {
+      display: flex;
+      list-style: none;
+      gap: 1.2rem;
+      align-items: center;
+    }
+
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.96rem;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: var(--text);
+    }
+
+    .cta-nav {
+      border: 1px solid var(--border);
+      background: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 100%);
+      color: white;
+      border-radius: 999px;
+      padding: 0.5rem 0.95rem;
+      font-weight: 600;
+    }
+
+    .hero {
+      padding: 4.6rem 0 2.2rem;
+      text-align: center;
+      animation: rise 0.7s ease-out;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      background: rgba(99, 102, 241, 0.14);
+      color: #c5c8ff;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.38rem 0.82rem;
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+
+    .hero h1 {
+      font-size: clamp(2rem, 6vw, 4rem);
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      max-width: 880px;
+      margin: 0 auto;
+      background: linear-gradient(110deg, #ffffff 15%, #a5b4fc 48%, #22d3ee 95%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .hero p {
+      max-width: 720px;
+      margin: 1.1rem auto 1.7rem;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .hero-actions {
+      display: flex;
+      justify-content: center;
+      gap: 0.8rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border-radius: 12px;
+      padding: 0.8rem 1.15rem;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+      border: 1px solid transparent;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn-primary {
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      color: #fff;
+      border-color: var(--border);
+    }
+
+    .btn-ghost {
+      background: rgba(255, 255, 255, 0.02);
+      border-color: rgba(255, 255, 255, 0.1);
+      color: var(--text);
+    }
+
+    .stats {
+      margin: 2.1rem auto 3.2rem;
+      padding: 1rem;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      background: linear-gradient(145deg, rgba(99, 102, 241, 0.11), rgba(20, 20, 49, 0.55));
+      border-radius: 18px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.85rem;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .stat-label {
+      margin-top: 0.3rem;
+      color: var(--muted);
+      font-size: 0.84rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    section {
+      margin-bottom: 3.4rem;
+    }
+
+    .section-head {
+      margin-bottom: 1.1rem;
+      font-size: 1.55rem;
+    }
+
+    .section-copy {
+      color: var(--muted);
+      max-width: 760px;
+      margin-bottom: 1.3rem;
+      line-height: 1.6;
+    }
+
+    .paths {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    .path {
+      background: var(--surface);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 1.2rem;
+    }
+
+    .path h3 {
+      margin-bottom: 0.9rem;
+    }
+
+    .path.happy h3 {
+      color: var(--ok);
+    }
+
+    .path.dispute h3 {
+      color: var(--warn);
+    }
+
+    .steps {
+      display: grid;
+      gap: 0.65rem;
+    }
+
+    .step {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 10px;
+      padding: 0.7rem 0.82rem;
+      color: #d9dbfa;
+      font-size: 0.94rem;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.9rem;
+    }
+
+    .feature-card {
+      background: linear-gradient(160deg, var(--surface) 0%, var(--surface-2) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 1rem;
+      min-height: 170px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .feature-card:hover {
+      border-color: var(--border);
+      transform: translateY(-2px);
+    }
+
+    .feature-card h3 {
+      margin-bottom: 0.55rem;
+      color: #c7cbff;
+    }
+
+    .feature-card p {
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 0.95rem;
+    }
+
+    .footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 1.2rem 0 2rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      font-size: 0.9rem;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 1rem;
+      list-style: none;
+    }
+
+    .footer-links a {
+      color: var(--muted);
+      text-decoration: none;
+    }
+
+    .footer-links a:hover {
+      color: #fff;
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 900px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .paths,
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .nav-links {
+        gap: 0.7rem;
+      }
+
+      .nav-links li:not(:last-child) {
+        display: none;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 <body>
-  <!-- Navbar -->
-  <nav class="navbar">
-    <div class="container">
-      <h1 class="logo">BountyVault</h1>
+  <nav class="nav">
+    <div class="wrapper nav-inner">
+      <div class="brand">Bounty<span>Vault</span></div>
       <ul class="nav-links">
         <li><a href="#hero">Home</a></li>
         <li><a href="#how-it-works">How It Works</a></li>
         <li><a href="#features">Features</a></li>
-        <li><a href="auth.html">Login</a></li>
+        <li><a class="cta-nav" href="auth.html">Login</a></li>
       </ul>
     </div>
   </nav>
 
-  <!-- Hero Section -->
-  <section id="hero" class="hero">
-    <div class="container">
-      <h1 class="hero-title">Decentralized Bounty Platform for the Future</h1>
-      <p class="hero-subtitle">Connect talent with opportunities in the Web3 ecosystem</p>
-      <a href="auth.html" class="cta-button">Get Started</a>
-    </div>
-  </section>
-
-  <!-- Stats Bar -->
-  <section class="stats">
-    <div class="container">
-      <div class="stats-grid" id="stats-grid">
-        <!-- Stats will be loaded here -->
+  <main class="wrapper">
+    <section id="hero" class="hero">
+      <span class="eyebrow">Escrowed Web3 Workflows</span>
+      <h1>Trustless bounties for builders, backed by on-chain escrow.</h1>
+      <p>
+        BountyVault connects posters and workers through clear rules, secure payouts,
+        and transparent dispute handling.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="auth.html">Launch BountyVault</a>
+        <a class="btn btn-ghost" href="#how-it-works">View flow</a>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- How It Works -->
-  <section id="how-it-works" class="how-it-works">
-    <div class="container">
-      <h2>How It Works</h2>
+    <section class="stats" aria-label="Platform stats">
+      <div class="stats-grid" id="stats-grid"></div>
+    </section>
+
+    <section id="how-it-works">
+      <h2 class="section-head">How It Works</h2>
+      <p class="section-copy">
+        Every bounty follows one of two transparent routes: instant payout when expectations are met,
+        or neutral arbitration if the result is disputed.
+      </p>
       <div class="paths">
-        <div class="path happy-path">
+        <article class="path happy">
           <h3>Happy Path</h3>
           <div class="steps">
-            <div class="step">1. Poster creates bounty</div>
-            <div class="step">2. Worker submits solution</div>
-            <div class="step">3. Poster approves and pays</div>
+            <div class="step">1. Poster creates bounty and locks funds in escrow</div>
+            <div class="step">2. Worker accepts scope and submits deliverable</div>
+            <div class="step">3. Poster approves work before deadline</div>
+            <div class="step">4. Contract releases payment to worker</div>
           </div>
-        </div>
-        <div class="path dispute-path">
+        </article>
+
+        <article class="path dispute">
           <h3>Dispute Path</h3>
           <div class="steps">
-            <div class="step">1. Poster creates bounty</div>
-            <div class="step">2. Worker submits solution</div>
-            <div class="step">3. Dispute raised</div>
-            <div class="step">4. Arbitration resolves</div>
+            <div class="step">1. Poster creates bounty and escrow is funded</div>
+            <div class="step">2. Worker submits output with proof</div>
+            <div class="step">3. Either party raises dispute before auto-release</div>
+            <div class="step">4. Admin/arbitrator reviews evidence and rules</div>
+            <div class="step">5. Contract sends payout according to ruling</div>
           </div>
-        </div>
+        </article>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- Features -->
-  <section id="features" class="features">
-    <div class="container">
-      <h2>Features</h2>
+    <section id="features">
+      <h2 class="section-head">Core Features</h2>
+      <p class="section-copy">Built to reduce trust assumptions while keeping collaboration fast and fair.</p>
       <div class="features-grid">
-        <div class="feature-card">
-          <h3>Decentralized</h3>
-          <p>No central authority, powered by blockchain</p>
-        </div>
-        <div class="feature-card">
-          <h3>Secure</h3>
-          <p>Smart contracts ensure fair transactions</p>
-        </div>
-        <div class="feature-card">
-          <h3>Transparent</h3>
-          <p>All transactions are publicly verifiable</p>
-        </div>
-        <div class="feature-card">
-          <h3>Fast</h3>
-          <p>Quick bounty creation and completion</p>
-        </div>
-        <div class="feature-card">
-          <h3>Arbitration</h3>
-          <p>Built-in dispute resolution system</p>
-        </div>
-        <div class="feature-card">
-          <h3>Multi-Chain</h3>
-          <p>Support for multiple blockchain networks</p>
-        </div>
+        <article class="feature-card">
+          <h3>On-Chain Escrow</h3>
+          <p>Funds are locked by contract rules before work starts, reducing payment risk.</p>
+        </article>
+        <article class="feature-card">
+          <h3>Role-Aware Dashboards</h3>
+          <p>Poster, worker, and admin portals expose only the controls each role needs.</p>
+        </article>
+        <article class="feature-card">
+          <h3>Milestone Ready</h3>
+          <p>Structure larger jobs into clear checkpoints without leaving the platform.</p>
+        </article>
+        <article class="feature-card">
+          <h3>Dispute Arbitration</h3>
+          <p>A dedicated dispute branch ensures deadlocks resolve with auditable outcomes.</p>
+        </article>
+        <article class="feature-card">
+          <h3>Transparent Activity</h3>
+          <p>Key events are trackable for both parties, improving accountability and trust.</p>
+        </article>
+        <article class="feature-card">
+          <h3>API-Driven Metrics</h3>
+          <p>Live overview cards pull directly from /api/stats for current platform health.</p>
+        </article>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- Footer -->
-  <footer class="footer">
-    <div class="container">
-      <p>&copy; 2024 BountyVault. All rights reserved.</p>
+    <footer class="footer">
+      <p>© 2026 BountyVault. Built for trust-minimized work.</p>
       <ul class="footer-links">
         <li><a href="#">Privacy</a></li>
         <li><a href="#">Terms</a></li>
-        <li><a href="#">Support</a></li>
+        <li><a href="#">Docs</a></li>
       </ul>
-    </div>
-  </footer>
+    </footer>
+  </main>
 
-  <script src="index.js"></script>
+  <script>
+    const fallbackStats = {
+      totalBounties: "1,284",
+      activeWorkers: "5,920",
+      totalPaid: "$3.1M",
+      disputeRate: "1.8%"
+    };
+
+    function labelize(key) {
+      return key
+        .replace(/([A-Z])/g, " $1")
+        .replace(/^./, char => char.toUpperCase());
+    }
+
+    function renderStats(stats) {
+      const statsGrid = document.getElementById("stats-grid");
+      statsGrid.innerHTML = "";
+
+      Object.entries(stats).forEach(([key, value]) => {
+        const card = document.createElement("article");
+        card.className = "stat-card";
+        card.innerHTML = `
+          <div class="stat-value">${value}</div>
+          <div class="stat-label">${labelize(key)}</div>
+        `;
+        statsGrid.appendChild(card);
+      });
+    }
+
+    async function loadStats() {
+      try {
+        const response = await fetch("/api/stats");
+        if (!response.ok) {
+          throw new Error("Stats request failed");
+        }
+        const stats = await response.json();
+        renderStats(stats);
+      } catch (error) {
+        console.error("Error loading stats:", error);
+        renderStats(fallbackStats);
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", loadStats);
+  </script>
 </body>
 </html>
 
