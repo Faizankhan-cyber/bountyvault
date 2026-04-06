@@ -68,6 +68,13 @@
       font-size: 0.84rem;
     }
 
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      flex-wrap: wrap;
+    }
+
     .tabs {
       display: flex;
       gap: 0.55rem;
@@ -188,6 +195,12 @@
       background: linear-gradient(90deg, var(--accent), #4f46e5);
       border-color: rgba(99, 102, 241, 0.55);
       color: #fff;
+    }
+
+    .btn-logout {
+      background: rgba(239, 68, 68, 0.14);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #fecaca;
     }
 
     .btn-danger {
@@ -432,7 +445,10 @@
         <h1 class="heading">Poster Dashboard</h1>
         <p class="subheading">Create bounties, manage payouts, and monitor dispute flow.</p>
       </div>
-      <div class="user-chip" id="user-chip">Loading user...</div>
+      <div class="header-actions">
+        <div class="user-chip" id="user-chip">Loading user...</div>
+        <button class="btn btn-logout" id="logout-btn" type="button">Logout</button>
+      </div>
     </section>
 
     <section class="tabs" aria-label="Poster sections">
@@ -560,6 +576,7 @@
     };
 
     const userChip = document.getElementById("user-chip");
+    const logoutBtn = document.getElementById("logout-btn");
 
     const myBountiesNode = document.getElementById("my-bounties");
     const mySpinnerNode = document.getElementById("my-spinner-wrap");
@@ -612,6 +629,12 @@
         name: (parsedUser && parsedUser.name) || "Poster",
         email: (parsedUser && parsedUser.email) || ""
       };
+    }
+
+    function clearAuthSession() {
+      ["user", "userRole", "userEmail", "pendingSignup", "walletAddress"].forEach((key) => {
+        localStorage.removeItem(key);
+      });
     }
 
     function showToast(message, type) {
@@ -1013,6 +1036,11 @@
     }
 
     function bindEvents() {
+      logoutBtn.addEventListener("click", () => {
+        clearAuthSession();
+        window.location.href = "auth.html";
+      });
+
       document.querySelectorAll(".tab-btn").forEach((btn) => {
         btn.addEventListener("click", () => switchTab(btn.getAttribute("data-tab")));
       });

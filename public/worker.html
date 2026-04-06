@@ -71,6 +71,19 @@
       font-size: 0.84rem;
     }
 
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-logout {
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      background: rgba(239, 68, 68, 0.14);
+      color: #fecaca;
+    }
+
     .tabs {
       display: flex;
       flex-wrap: wrap;
@@ -470,7 +483,10 @@
         <h1 class="title">Worker Dashboard</h1>
         <p class="subtitle">Browse bounties, track application decisions, and monitor your earnings.</p>
       </div>
-      <div class="worker-chip" id="worker-chip">Checking worker session...</div>
+      <div class="header-actions">
+        <div class="worker-chip" id="worker-chip">Checking worker session...</div>
+        <button class="btn btn-logout" id="logout-btn" type="button">Logout</button>
+      </div>
     </section>
 
     <section class="tabs" aria-label="Worker tabs">
@@ -563,6 +579,7 @@
     };
 
     const workerChipNode = document.getElementById("worker-chip");
+    const logoutBtn = document.getElementById("logout-btn");
 
     const browseListNode = document.getElementById("browse-list");
     const applicationsListNode = document.getElementById("applications-list");
@@ -624,6 +641,12 @@
         email: user && user.email ? user.email : "",
         role: "worker"
       };
+    }
+
+    function clearAuthSession() {
+      ["user", "userRole", "userEmail", "pendingSignup", "walletAddress"].forEach((key) => {
+        localStorage.removeItem(key);
+      });
     }
 
     function formatDate(value) {
@@ -958,6 +981,11 @@
     }
 
     function bindEvents() {
+      logoutBtn.addEventListener("click", () => {
+        clearAuthSession();
+        window.location.href = "auth.html";
+      });
+
       document.querySelectorAll(".tab-btn").forEach((btn) => {
         btn.addEventListener("click", () => switchTab(btn.getAttribute("data-tab")));
       });

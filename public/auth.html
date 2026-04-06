@@ -35,6 +35,29 @@
       padding: 1.2rem;
     }
 
+    .auth-topbar {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 10;
+    }
+
+    .btn-logout {
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 999px;
+      background: rgba(239, 68, 68, 0.14);
+      color: #fecaca;
+      font-weight: 700;
+      font-size: 0.86rem;
+      cursor: pointer;
+      padding: 0.5rem 0.92rem;
+      display: none;
+    }
+
+    .btn-logout.visible {
+      display: inline-flex;
+    }
+
     .auth-shell {
       width: min(980px, 100%);
       display: grid;
@@ -203,6 +226,10 @@
   </style>
 </head>
 <body>
+  <div class="auth-topbar">
+    <button class="btn-logout" id="logout-btn" type="button">Logout</button>
+  </div>
+
   <main class="auth-shell">
     <section class="panel" aria-labelledby="welcome-title">
       <span class="eyebrow">Choose your role</span>
@@ -246,6 +273,18 @@
 
   <script>
     let selectedRole = null;
+    const logoutBtn = document.getElementById("logout-btn");
+
+    function clearAuthSession() {
+      ["user", "userRole", "userEmail", "pendingSignup", "walletAddress"].forEach((key) => {
+        localStorage.removeItem(key);
+      });
+    }
+
+    function updateLogoutButton() {
+      const hasSession = Boolean(localStorage.getItem("userRole") || localStorage.getItem("user"));
+      logoutBtn.classList.toggle("visible", hasSession);
+    }
 
     function redirectBasedOnRole(role) {
       if (role === "poster") {
@@ -312,6 +351,12 @@
       }
     }
 
+    logoutBtn.addEventListener("click", () => {
+      clearAuthSession();
+      updateLogoutButton();
+      window.location.href = "auth.html";
+    });
+
     function setError(message) {
       const errorNode = document.getElementById("error");
       errorNode.textContent = message;
@@ -377,6 +422,7 @@
       }
     });
 
+    updateLogoutButton();
     checkExistingLogin();
   </script>
 </body>

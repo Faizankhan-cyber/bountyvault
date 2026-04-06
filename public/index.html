@@ -106,6 +106,19 @@
       font-weight: 600;
     }
 
+    .cta-nav-logout {
+      border: 1px solid rgba(239, 68, 68, 0.28);
+      background: rgba(239, 68, 68, 0.14);
+      color: #fecaca;
+      border-radius: 999px;
+      padding: 0.5rem 0.95rem;
+      font-weight: 600;
+    }
+
+    .is-hidden {
+      display: none !important;
+    }
+
     .hero {
       padding: 4.6rem 0 2.2rem;
       text-align: center;
@@ -503,7 +516,8 @@
         <li><a href="#how-it-works">How It Works</a></li>
         <li><a href="#features">Features</a></li>
         <li><a class="cta-nav-secondary" href="signup.html">Sign Up</a></li>
-        <li><a class="cta-nav" href="auth.html">Login</a></li>
+        <li id="nav-login-item"><a class="cta-nav" href="auth.html">Login</a></li>
+        <li id="nav-logout-item" class="is-hidden"><button class="cta-nav-logout" id="logout-btn" type="button">Logout</button></li>
       </ul>
     </div>
   </nav>
@@ -630,6 +644,9 @@
     const bountyResultMeta = document.getElementById("bounty-result-meta");
     const learnMoreBtn = document.getElementById("learn-more-btn");
     const howItWorksSection = document.getElementById("how-it-works");
+    const navLoginItem = document.getElementById("nav-login-item");
+    const navLogoutItem = document.getElementById("nav-logout-item");
+    const logoutBtn = document.getElementById("logout-btn");
 
     function toNumber(value) {
       const n = Number(value);
@@ -673,6 +690,24 @@
       const statsGrid = document.getElementById("stats-grid");
       statsGrid.innerHTML =
         '<article class="stat-card"><div class="stat-value">--</div><div class="stat-label">Stats unavailable</div></article>';
+    }
+
+    function clearAuthSession() {
+      ["user", "userRole", "userEmail", "pendingSignup", "walletAddress"].forEach((key) => {
+        localStorage.removeItem(key);
+      });
+    }
+
+    function isLoggedIn() {
+      const userRole = (localStorage.getItem("userRole") || "").toLowerCase();
+      const userRaw = localStorage.getItem("user");
+      return Boolean(userRole || userRaw);
+    }
+
+    function updateNavAuthState() {
+      const loggedIn = isLoggedIn();
+      navLoginItem.classList.toggle("is-hidden", loggedIn);
+      navLogoutItem.classList.toggle("is-hidden", !loggedIn);
     }
 
     function toSearchBlob(bounty) {
@@ -788,6 +823,13 @@
         });
       }
 
+      if (logoutBtn) {
+        logoutBtn.addEventListener("click", () => {
+          clearAuthSession();
+          window.location.href = "auth.html";
+        });
+      }
+
       searchForm.addEventListener("submit", (event) => {
         event.preventDefault();
         applyBountySearch();
@@ -797,6 +839,7 @@
     }
 
     async function init() {
+      updateNavAuthState();
       bindEvents();
       await Promise.all([loadStats(), loadBounties()]);
     }
