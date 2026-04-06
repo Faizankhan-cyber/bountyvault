@@ -151,6 +151,58 @@
       flex-wrap: wrap;
     }
 
+    .search-wrap {
+      margin: 1.2rem auto 0;
+      max-width: 740px;
+      display: grid;
+      gap: 0.6rem;
+    }
+
+    .search-form {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.55rem;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      padding: 0.45rem;
+    }
+
+    .search-input {
+      border: 1px solid transparent;
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--text);
+      border-radius: 10px;
+      height: 44px;
+      padding: 0 0.8rem;
+      font: inherit;
+      outline: none;
+    }
+
+    .search-input:focus {
+      border-color: var(--border);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+    }
+
+    .search-btn {
+      border-radius: 10px;
+      height: 44px;
+      border: 1px solid var(--border);
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      color: #fff;
+      font-weight: 700;
+      padding: 0 1rem;
+      cursor: pointer;
+    }
+
+    .search-hint {
+      color: var(--muted);
+      font-size: 0.84rem;
+      text-align: left;
+      padding: 0 0.2rem;
+    }
+
     .btn {
       border-radius: 12px;
       padding: 0.8rem 1.15rem;
@@ -183,6 +235,73 @@
       border: 1px solid rgba(255, 255, 255, 0.07);
       background: linear-gradient(145deg, rgba(99, 102, 241, 0.11), rgba(20, 20, 49, 0.55));
       border-radius: 18px;
+    }
+
+    .bounty-results-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.8rem;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 0.9rem;
+    }
+
+    .result-meta {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .bounty-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.9rem;
+    }
+
+    .bounty-card {
+      background: linear-gradient(165deg, var(--surface) 0%, var(--surface-2) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 1rem;
+      min-height: 170px;
+      display: grid;
+      gap: 0.55rem;
+    }
+
+    .bounty-card h3 {
+      font-size: 1rem;
+      color: #dbe0ff;
+      line-height: 1.35;
+    }
+
+    .bounty-card p {
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .bounty-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-top: auto;
+    }
+
+    .tag {
+      border-radius: 999px;
+      border: 1px solid rgba(99, 102, 241, 0.32);
+      background: rgba(99, 102, 241, 0.13);
+      color: #c7d2fe;
+      font-size: 0.75rem;
+      padding: 0.24rem 0.55rem;
+    }
+
+    .empty-results {
+      border: 1px dashed rgba(255, 255, 255, 0.16);
+      border-radius: 14px;
+      padding: 1rem;
+      color: var(--muted);
+      text-align: center;
+      background: rgba(255, 255, 255, 0.02);
     }
 
     .stats-grid {
@@ -342,7 +461,8 @@
       }
 
       .paths,
-      .features-grid {
+      .features-grid,
+      .bounty-grid {
         grid-template-columns: 1fr;
       }
 
@@ -358,6 +478,14 @@
     @media (max-width: 560px) {
       .stats-grid {
         grid-template-columns: 1fr;
+      }
+
+      .search-form {
+        grid-template-columns: 1fr;
+      }
+
+      .search-btn {
+        width: 100%;
       }
     }
   </style>
@@ -388,10 +516,31 @@
         <a class="btn btn-primary" href="auth.html">Launch BountyVault</a>
         <a class="btn btn-ghost" href="#how-it-works">View flow</a>
       </div>
+      <div class="search-wrap" aria-label="Search bounties">
+        <form class="search-form" id="bounty-search-form">
+          <input
+            class="search-input"
+            id="bounty-search-input"
+            type="search"
+            placeholder="Search bounties by title or keywords"
+            aria-label="Search bounties by title or keywords"
+          >
+          <button class="search-btn" id="bounty-search-btn" type="submit">Search</button>
+        </form>
+        <p class="search-hint">Try terms like smart contract, design, frontend, bug fix, API.</p>
+      </div>
     </section>
 
     <section class="stats" aria-label="Platform stats">
       <div class="stats-grid" id="stats-grid"></div>
+    </section>
+
+    <section id="bounty-discovery" aria-label="Bounty discovery">
+      <div class="bounty-results-head">
+        <h2 class="section-head">Browse Bounties</h2>
+        <p class="result-meta" id="bounty-result-meta">Loading bounties...</p>
+      </div>
+      <div class="bounty-grid" id="bounty-results"></div>
     </section>
 
     <section id="how-it-works">
@@ -466,12 +615,22 @@
   </main>
 
   <script>
+    const state = {
+      allBounties: [],
+      visibleBounties: []
+    };
+
     const fallbackStats = {
       totalBounties: "1,284",
       activeWorkers: "5,920",
       totalPaid: "$3.1M",
       disputeRate: "1.8%"
     };
+
+    const searchForm = document.getElementById("bounty-search-form");
+    const searchInput = document.getElementById("bounty-search-input");
+    const bountyResults = document.getElementById("bounty-results");
+    const bountyResultMeta = document.getElementById("bounty-result-meta");
 
     function labelize(key) {
       return key
@@ -494,6 +653,97 @@
       });
     }
 
+    function toSearchBlob(bounty) {
+      const fields = [
+        bounty.title,
+        bounty.description,
+        bounty.category,
+        bounty.skills,
+        bounty.tags,
+        bounty.keyword,
+        bounty.keywords
+      ];
+      return fields
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+    }
+
+    function renderBounties(list, query) {
+      bountyResults.innerHTML = "";
+
+      if (!list.length) {
+        bountyResults.innerHTML = '<div class="empty-results">No bounties match your search right now.</div>';
+        bountyResultMeta.textContent = query
+          ? '0 results for "' + query + '"'
+          : "No bounties available at the moment.";
+        return;
+      }
+
+      const q = (query || "").trim();
+      bountyResultMeta.textContent = q
+        ? list.length + ' result' + (list.length === 1 ? "" : "s") + ' for "' + q + '"'
+        : list.length + " open bounty" + (list.length === 1 ? "" : "ies") + " available";
+
+      list.slice(0, 12).forEach((bounty) => {
+        const card = document.createElement("article");
+        card.className = "bounty-card";
+
+        const title = bounty.title || "Untitled Bounty";
+        const description = bounty.description || "No description provided.";
+        const tags = [bounty.category, bounty.skills, bounty.tags]
+          .filter(Boolean)
+          .join(", ")
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean)
+          .slice(0, 4);
+
+        card.innerHTML = `
+          <h3>${title}</h3>
+          <p>${description}</p>
+          <div class="bounty-tags">
+            ${tags.length ? tags.map((tag) => `<span class="tag">${tag}</span>`).join("") : '<span class="tag">Open</span>'}
+          </div>
+        `;
+
+        bountyResults.appendChild(card);
+      });
+    }
+
+    function applyBountySearch() {
+      const query = searchInput.value.trim().toLowerCase();
+      if (!query) {
+        state.visibleBounties = [...state.allBounties];
+        renderBounties(state.visibleBounties, "");
+        return;
+      }
+
+      state.visibleBounties = state.allBounties.filter((bounty) => toSearchBlob(bounty).includes(query));
+      renderBounties(state.visibleBounties, searchInput.value.trim());
+    }
+
+    async function loadBounties() {
+      try {
+        const response = await fetch("/api/bounties");
+        if (!response.ok) {
+          throw new Error("Bounties request failed");
+        }
+
+        const data = await response.json();
+        state.allBounties = Array.isArray(data)
+          ? data.filter((item) => String(item.status || "open").toLowerCase() === "open")
+          : [];
+        state.visibleBounties = [...state.allBounties];
+        renderBounties(state.visibleBounties, "");
+      } catch (error) {
+        console.error("Error loading bounties:", error);
+        state.allBounties = [];
+        state.visibleBounties = [];
+        renderBounties([], "");
+      }
+    }
+
     async function loadStats() {
       try {
         const response = await fetch("/api/stats");
@@ -508,7 +758,21 @@
       }
     }
 
-    document.addEventListener("DOMContentLoaded", loadStats);
+    function bindEvents() {
+      searchForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        applyBountySearch();
+      });
+
+      searchInput.addEventListener("input", applyBountySearch);
+    }
+
+    async function init() {
+      bindEvents();
+      await Promise.all([loadStats(), loadBounties()]);
+    }
+
+    document.addEventListener("DOMContentLoaded", init);
   </script>
 </body>
 </html>
