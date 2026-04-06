@@ -89,6 +89,27 @@
       font-size: 0.84rem;
     }
 
+    .header-controls {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      align-items: center;
+    }
+
+    .wallet-chip {
+      border: 1px solid rgba(99, 102, 241, 0.42);
+      border-radius: 999px;
+      background: rgba(99, 102, 241, 0.12);
+      color: #c7d2fe;
+      padding: 0.38rem 0.72rem;
+      font-size: 0.84rem;
+      max-width: 190px;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
     .tabs {
       display: flex;
       flex-wrap: wrap;
@@ -469,7 +490,11 @@
         <h1 class="title">BountyVault Dispute Command Center</h1>
         <p class="subtitle">Resolve high-stakes disputes with transparent outcomes and immutable transaction visibility.</p>
       </div>
-      <div class="admin-chip" id="admin-chip">Validating admin session...</div>
+      <div class="header-controls">
+        <button class="btn btn-info" id="connect-wallet-btn" type="button">Connect Wallet</button>
+        <div class="wallet-chip" id="wallet-chip">Wallet: not connected</div>
+        <div class="admin-chip" id="admin-chip">Validating admin session...</div>
+      </div>
     </section>
 
     <section class="tabs" aria-label="Admin tabs">
@@ -537,15 +562,22 @@
 
   <div class="toast-wrap" id="toast-wrap" aria-live="polite"></div>
 
-  <script>
+  <script src="https://cdn.jsdelivr.net/npm/@perawallet/connect/dist/perawallet-connect.umd.min.js"></script>
+  <script type="module">
+    import algosdk from "https://cdn.jsdelivr.net/npm/algosdk/+esm";
+    import * as algokit from "https://cdn.jsdelivr.net/npm/@algorandfoundation/algokit-utils/+esm";
+
     const state = {
       admin: null,
       disputes: [],
       bountiesById: new Map(),
       transparentCards: new Map(),
       pendingConfirmAction: null,
-      stats: null
+      stats: null,
+      activeWalletAddress: null
     };
+
+    void algokit;
 
     const adminChip = document.getElementById("admin-chip");
 
@@ -561,12 +593,32 @@
     const resolutionFillNode = document.getElementById("resolution-fill");
     const resolutionDetailNode = document.getElementById("resolution-detail");
 
+    const connectWalletBtn = document.getElementById("connect-wallet-btn");
+    const walletChipNode = document.getElementById("wallet-chip");
+
     const confirmBackdrop = document.getElementById("confirm-backdrop");
     const confirmMessage = document.getElementById("confirm-message");
     const confirmCancelBtn = document.getElementById("confirm-cancel");
     const confirmOkBtn = document.getElementById("confirm-ok");
 
     const toastWrapNode = document.getElementById("toast-wrap");
+
+    const APP_ID = Number(localStorage.getItem("arc4AppId") || 0);
+    const ALGOD_SERVER = localStorage.getItem("algodServer") || "https://testnet-api.algonode.cloud";
+    const algod = new algosdk.Algodv2("", ALGOD_SERVER, "");
+    const resolveDisputeMethod = new algosdk.ABIMethod({
+      name: "resolve_dispute",
+      args: [
+        { type: "address", name: "recipient" },
+        { type: "string", name: "decision" }
+      ],
+      returns: { type: "void" }
+    });
+
+    const PeraClass =
+      (window.PeraWalletConnect && window.PeraWalletConnect.PeraWalletConnect) ||
+      window.PeraWalletConnect;
+    const peraWallet = PeraClass ? new PeraClass() : null;
 
     function parseAdminSession() {
       const userRole = (localStorage.getItem("userRole") || "").toLowerCase();
@@ -641,6 +693,116 @@
 
     function loraLink(txnId) {
       return "https://lora.algokit.io/testnet/transaction/" + encodeURIComponent(txnId);
+    }
+
+    function truncateAddress(address) {
+      if (!address || address.length < 12) {
+        return address || "";
+      }
+      return address.slice(0, 6) + "..." + address.slice(-4);
+    }
+
+    function setWalletChip() {
+      walletChipNode.textContent = state.activeWalletAddress
+        ? "Wallet: " + truncateAddress(state.activeWalletAddress)
+        : "Wallet: not connected";
+    }
+
+    async function connectWallet() {
+      if (!peraWallet) {
+        showToast("Pera Wallet SDK is unavailable", "warn");
+        return;
+      }
+
+      try {
+        const accounts = await peraWallet.connect();
+        if (Array.isArray(accounts) && accounts[0]) {
+          state.activeWalletAddress = accounts[0];
+          localStorage.setItem("walletAddress", state.activeWalletAddress);
+          setWalletChip();
+          showToast("Wallet connected", "success");
+        }
+      } catch (error) {
+        console.error("Wallet connection failed", error);
+        showToast("Wallet connection failed", "warn");
+      }
+    }
+
+    async function hydrateWalletSession() {
+      const cachedAddress = localStorage.getItem("walletAddress");
+      if (cachedAddress) {
+        state.activeWalletAddress = cachedAddress;
+      }
+
+      if (!peraWallet || !peraWallet.reconnectSession) {
+        setWalletChip();
+        return;
+      }
+
+      try {
+        const accounts = await peraWallet.reconnectSession();
+        if (Array.isArray(accounts) && accounts[0]) {
+          state.activeWalletAddress = accounts[0];
+          localStorage.setItem("walletAddress", state.activeWalletAddress);
+        }
+      } catch (error) {
+        console.error("Wallet reconnect failed", error);
+      }
+
+      setWalletChip();
+    }
+
+    function getPeraSigner() {
+      return async function signer(txnGroup, indexesToSign) {
+        if (!state.activeWalletAddress) {
+          throw new Error("Wallet not connected");
+        }
+
+        const txnsToSign = txnGroup.map((txn, index) => ({
+          txn,
+          signers: indexesToSign.includes(index) ? [state.activeWalletAddress] : []
+        }));
+
+        const signed = await peraWallet.signTransaction([txnsToSign]);
+        if (Array.isArray(signed) && Array.isArray(signed[0])) {
+          return signed[0];
+        }
+        return signed;
+      };
+    }
+
+    function suggestRecipientAddress(bounty, decision) {
+      if (decision === "worker") {
+        return bounty.worker_address || bounty.worker_wallet || bounty.worker_algo || "";
+      }
+      return bounty.poster_address || bounty.poster_wallet || bounty.poster_algo || "";
+    }
+
+    async function callResolveDisputeArc4(recipient, decision) {
+      if (!APP_ID) {
+        throw new Error("Missing app id. Set localStorage arc4AppId before resolving disputes.");
+      }
+
+      if (!state.activeWalletAddress) {
+        await connectWallet();
+      }
+      if (!state.activeWalletAddress) {
+        throw new Error("Wallet not connected");
+      }
+
+      const suggestedParams = await algod.getTransactionParams().do();
+      const atc = new algosdk.AtomicTransactionComposer();
+      atc.addMethodCall({
+        appID: APP_ID,
+        method: resolveDisputeMethod,
+        sender: state.activeWalletAddress,
+        suggestedParams,
+        methodArgs: [recipient, decision],
+        signer: getPeraSigner()
+      });
+
+      const result = await atc.execute(algod, 4);
+      return result.txIDs[0];
     }
 
     function openConfirm(message, onConfirm, dangerStyle) {
@@ -846,14 +1008,32 @@
 
     async function resolveDispute(disputeId, bountyId, decision) {
       try {
-        const txnId = "resolve-" + bountyId + "-" + Date.now();
+        const bounty = state.bountiesById.get(Number(bountyId)) || {};
+        const defaultRecipient = suggestRecipientAddress(bounty, decision);
+        const recipient = window.prompt(
+          "Enter recipient Algorand address for this decision:",
+          defaultRecipient
+        );
+
+        if (recipient === null) {
+          return;
+        }
+
+        const recipientAddress = recipient.trim();
+        if (!algosdk.isValidAddress(recipientAddress)) {
+          showToast("Invalid Algorand recipient address", "warn");
+          return;
+        }
+
+        const txnId = await callResolveDisputeArc4(recipientAddress, decision);
+
         const response = await fetch("/api/bounties/" + bountyId + "/resolve", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             decision,
             txn_id: txnId,
-            resolved_by: state.admin.email || state.admin.name || "admin"
+            resolved_by: state.activeWalletAddress || state.admin.email || state.admin.name || "admin"
           })
         });
 
@@ -865,7 +1045,7 @@
 
         state.transparentCards.set(Number(disputeId), { decision, txnId });
         renderOpenDisputes();
-        showToast("Dispute resolved and recorded on-chain", "success");
+        showToast("Resolved on-chain: " + txnId, "success");
 
         setTimeout(async () => {
           state.transparentCards.delete(Number(disputeId));
@@ -896,6 +1076,8 @@
     }
 
     function bindEvents() {
+      connectWalletBtn.addEventListener("click", connectWallet);
+
       document.querySelectorAll(".tab-btn").forEach((btn) => {
         btn.addEventListener("click", () => {
           switchTab(btn.getAttribute("data-tab"));
@@ -994,6 +1176,8 @@
       if (!state.admin) {
         return;
       }
+
+      await hydrateWalletSession();
 
       adminChip.textContent = (state.admin.name || "Admin") + " | " + (state.admin.email || "admin@bountyvault.local") + " | role: admin";
       bindEvents();
