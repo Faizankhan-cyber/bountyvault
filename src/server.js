@@ -15,7 +15,7 @@ if (!fs.existsSync("./data")) {
   fs.mkdirSync("./data");
 }
 
-const db = new Database('/data/bountyvault.db');
+const db = new Database("./data/bountyvault.db");
 
 db.prepare("PRAGMA foreign_keys = ON").run();
 
