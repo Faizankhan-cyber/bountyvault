@@ -569,7 +569,7 @@
 
   <div class="toast-wrap" id="toast-wrap" aria-live="polite"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@perawallet/connect/dist/perawallet-connect.umd.min.js"></script>
+  <script src="https://unpkg.com/@perawallet/connect/dist/umd/index.umd.js"></script>
   <script type="module">
     import algosdk from "https://cdn.jsdelivr.net/npm/algosdk/+esm";
     import * as algokit from "https://cdn.jsdelivr.net/npm/@algorandfoundation/algokit-utils/+esm";
@@ -623,10 +623,8 @@
       returns: { type: "void" }
     });
 
-    const PeraClass =
-      (window.PeraWalletConnect && window.PeraWalletConnect.PeraWalletConnect) ||
-      window.PeraWalletConnect;
-    const peraWallet = PeraClass ? new PeraClass() : null;
+    const PeraWalletConnect = window.PeraWalletConnect.PeraWalletConnect;
+    const peraWallet = new PeraWalletConnect({ shouldShowSignTxnToast: true });
 
     function parseArbitratorSession() {
       const userRole = (localStorage.getItem("userRole") || "").toLowerCase();
@@ -737,6 +735,9 @@
           showToast("Wallet connected", "success");
         }
       } catch (error) {
+        if (error.message && error.message.includes("CONNECT_MODAL_CLOSED")) {
+          return;
+        }
         console.error("Wallet connection failed", error);
         showToast("Wallet connection failed", "warn");
       }
@@ -760,7 +761,9 @@
           localStorage.setItem("walletAddress", state.activeWalletAddress);
         }
       } catch (error) {
-        console.error("Wallet reconnect failed", error);
+        if (error.message && !error.message.includes("CONNECT_MODAL_CLOSED")) {
+          console.error("Wallet reconnect failed", error);
+        }
       }
 
       setWalletChip();

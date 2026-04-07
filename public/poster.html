@@ -607,7 +607,7 @@
 
   <div class="toast-wrap" id="toast-wrap" aria-live="polite"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@perawallet/connect/dist/perawallet-connect.umd.min.js"></script>
+  <script src="https://unpkg.com/@perawallet/connect/dist/umd/index.umd.js"></script>
 
   <script>
     const state = {
@@ -652,11 +652,9 @@
     let peraWallet = null;
 
     function initPeraWallet() {
-      const PeraClass =
-        (window.PeraWalletConnect && window.PeraWalletConnect.PeraWalletConnect) ||
-        window.PeraWalletConnect;
-      if (PeraClass) {
-        peraWallet = new PeraClass();
+      const PeraWalletConnect = window.PeraWalletConnect.PeraWalletConnect;
+      if (PeraWalletConnect) {
+        peraWallet = new PeraWalletConnect({ shouldShowSignTxnToast: true });
       }
     }
 
@@ -742,6 +740,9 @@
           showToast("Wallet connected", "success");
         }
       } catch (error) {
+        if (error.message && error.message.includes("CONNECT_MODAL_CLOSED")) {
+          return;
+        }
         console.error("Wallet connection failed", error);
         const message = String((error && error.message) || "").toLowerCase();
         if (message.includes("cancel") || message.includes("reject")) {
@@ -766,7 +767,9 @@
             localStorage.setItem("walletAddress", state.activeWalletAddress);
           }
         } catch (error) {
-          console.error("Wallet reconnect failed", error);
+          if (error.message && !error.message.includes("CONNECT_MODAL_CLOSED")) {
+            console.error("Wallet reconnect failed", error);
+          }
         }
       }
 
