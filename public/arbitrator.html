@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BountyVault | Arbitrator Arbitration Console</title>
+  <!-- Pera SDK - must be first -->
+  <script src="https://unpkg.com/@perawallet/connect/dist/umd/index.umd.js"></script>
+  <!-- Algorand SDK for making transactions -->
+  <script src="https://unpkg.com/algosdk/dist/browser/algosdk.min.js"></script>
   <style>
     :root {
       --bg: #0f0f23;
@@ -497,7 +501,7 @@
         <p class="subtitle">Resolve high-stakes disputes with transparent outcomes and immutable transaction visibility.</p>
       </div>
       <div class="header-controls">
-        <button class="btn btn-info" id="connect-wallet-btn" type="button">Connect Wallet</button>
+        <button class="btn btn-info" id="wallet-btn" type="button" onclick="connectWallet()">Connect Wallet</button>
         <div class="wallet-chip" id="wallet-chip">Wallet: not connected</div>
         <div class="arbitrator-chip" id="arbitrator-chip">Validating arbitrator session...</div>
         <button class="btn btn-logout" id="logout-btn" type="button">Logout</button>
@@ -569,7 +573,7 @@
 
   <div class="toast-wrap" id="toast-wrap" aria-live="polite"></div>
 
-  <script src="https://unpkg.com/@perawallet/connect/dist/umd/index.umd.js"></script>
+  <script src="wallet.js"></script>
   <script type="module">
     import algosdk from "https://cdn.jsdelivr.net/npm/algosdk/+esm";
     import * as algokit from "https://cdn.jsdelivr.net/npm/@algorandfoundation/algokit-utils/+esm";
@@ -600,7 +604,7 @@
     const resolutionFillNode = document.getElementById("resolution-fill");
     const resolutionDetailNode = document.getElementById("resolution-detail");
 
-    const connectWalletBtn = document.getElementById("connect-wallet-btn");
+    const connectWalletBtn = document.getElementById("connect-wallet-btn") || document.getElementById("wallet-btn");
     const walletChipNode = document.getElementById("wallet-chip");
     const logoutBtn = document.getElementById("logout-btn");
 

@@ -158,6 +158,8 @@
       }
     }
   </style>
+  <script src="https://unpkg.com/@perawallet/connect/dist/umd/index.umd.js"></script>
+  <script src="https://unpkg.com/algosdk/dist/browser/algosdk.min.js"></script>
 </head>
 <body>
   <main class="card">
@@ -200,6 +202,7 @@
     <p class="note" id="signup-note">After sign up, you will be redirected to login.</p>
   </main>
 
+  <script src="wallet.js"></script>
   <script>
     const signupForm = document.getElementById("signup-form");
     const signupNote = document.getElementById("signup-note");

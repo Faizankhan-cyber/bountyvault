@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BountyVault | Poster Dashboard</title>
+  <!-- Pera SDK - must be first -->
+  <script src="https://unpkg.com/@perawallet/connect/dist/umd/index.umd.js"></script>
+  <!-- Algorand SDK for making transactions -->
+  <script src="https://unpkg.com/algosdk/dist/browser/algosdk.min.js"></script>
   <style>
     :root {
       --bg: #0f0f23;
@@ -485,7 +489,7 @@
         <p class="subheading">Create bounties, manage payouts, and monitor dispute flow.</p>
       </div>
       <div class="header-actions">
-        <button class="btn btn-info" id="connect-wallet-btn" type="button">Connect Wallet</button>
+        <button class="btn btn-info" id="wallet-btn" type="button" onclick="connectWallet()">Connect Wallet</button>
         <div class="wallet-chip" id="wallet-chip">Wallet: not connected</div>
         <div class="wallet-status disconnected" id="wallet-status">Disconnected</div>
         <div class="user-chip" id="user-chip">Loading user...</div>
@@ -607,7 +611,7 @@
 
   <div class="toast-wrap" id="toast-wrap" aria-live="polite"></div>
 
-  <script src="https://unpkg.com/@perawallet/connect/dist/umd/index.umd.js"></script>
+  <script src="wallet.js"></script>
 
   <script>
     const state = {
@@ -624,7 +628,7 @@
     const userChip = document.getElementById("user-chip");
     const walletChip = document.getElementById("wallet-chip");
     const walletStatus = document.getElementById("wallet-status");
-    const connectWalletBtn = document.getElementById("connect-wallet-btn");
+    const connectWalletBtn = document.getElementById("connect-wallet-btn") || document.getElementById("wallet-btn");
     const logoutBtn = document.getElementById("logout-btn");
 
     const myBountiesNode = document.getElementById("my-bounties");
@@ -652,9 +656,14 @@
     let peraWallet = null;
 
     function initPeraWallet() {
-      const PeraWalletConnect = window.PeraWalletConnect.PeraWalletConnect;
-      if (PeraWalletConnect) {
-        peraWallet = new PeraWalletConnect({ shouldShowSignTxnToast: true });
+      try {
+        if (window.PeraWalletConnect && window.PeraWalletConnect.PeraWalletConnect) {
+          const PeraWalletConnect = window.PeraWalletConnect.PeraWalletConnect;
+          peraWallet = new PeraWalletConnect({ shouldShowSignTxnToast: true });
+        }
+      } catch (error) {
+        console.warn("Pera Wallet SDK not available:", error);
+        peraWallet = null;
       }
     }
 
@@ -703,6 +712,8 @@
         }
       }
       state.activeWalletAddress = null;
+      state.user = null;
+      setWalletChip();
     }
 
     function truncateAddress(address) {
@@ -769,15 +780,23 @@
 
       if (peraWallet && peraWallet.reconnectSession) {
         try {
-          const accounts = await peraWallet.reconnectSession();
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Wallet reconnect timeout")), 3000)
+          );
+          const accounts = await Promise.race([
+            peraWallet.reconnectSession(),
+            timeoutPromise
+          ]);
           if (Array.isArray(accounts) && accounts[0]) {
             state.activeWalletAddress = accounts[0];
             localStorage.setItem("walletAddress", state.activeWalletAddress);
           }
         } catch (error) {
-          if (error.message && !error.message.includes("CONNECT_MODAL_CLOSED")) {
+          if (error.message && !error.message.includes("CONNECT_MODAL_CLOSED") && !error.message.includes("timeout")) {
             console.error("Wallet reconnect failed", error);
           }
+          state.activeWalletAddress = null;
+          localStorage.removeItem("walletAddress");
         }
       }
 
@@ -1429,20 +1448,44 @@
       });
     }
 
-    function init() {
-      initPeraWallet();
-      state.user = parseLocalUser();
-      if (!state.user) {
-        return;
+    async function init() {
+      try {
+        initPeraWallet();
+        state.user = parseLocalUser();
+        if (!state.user) {
+          return;
+        }
+
+        userChip.textContent = (state.user.name || "Poster") + " | " + (state.user.email || "no-email") + " | role: poster";
+        
+        try {
+          document.getElementById("poster-name").value = state.user.name || "";
+          document.getElementById("poster-email").value = state.user.email || "";
+        } catch (e) {
+          console.warn("Could not set form defaults", e);
+        }
+
+        bindEvents();
+        
+        try {
+          await hydrateWalletSession();
+        } catch (error) {
+          console.error("Wallet hydration error", error);
+          state.activeWalletAddress = null;
+          setWalletChip();
+        }
+        
+        loadMyBounties();
+      } catch (error) {
+        console.error("Init error", error);
+        userChip.textContent = "Error loading user session";
+        setWalletChip();
+        try {
+          bindEvents();
+        } catch (e) {
+          console.error("Event binding failed", e);
+        }
       }
-
-      userChip.textContent = (state.user.name || "Poster") + " | " + (state.user.email || "no-email") + " | role: poster";
-      document.getElementById("poster-name").value = state.user.name || "";
-      document.getElementById("poster-email").value = state.user.email || "";
-
-      bindEvents();
-      hydrateWalletSession();
-      loadMyBounties();
     }
 
     init();
