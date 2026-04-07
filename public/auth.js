@@ -14,7 +14,8 @@ function checkLogin() {
   const user = localStorage.getItem('user');
   if (user) {
     const userData = JSON.parse(user);
-    redirectBasedOnRole(userData.role);
+    const role = (userData && userData.user ? userData.user.role : userData.role) || '';
+    redirectBasedOnRole(String(role).toLowerCase());
   }
 }
 
@@ -27,8 +28,8 @@ function redirectBasedOnRole(role) {
     case 'worker':
       window.location.href = 'worker.html';
       break;
-    case 'admin':
-      window.location.href = 'admin.html';
+    case 'arbitrator':
+      window.location.href = 'arbitrator.html';
       break;
     default:
       console.error('Unknown role:', role);
@@ -46,7 +47,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
 
   const formData = new FormData(e.target);
   const loginData = {
-    role: selectedRole,
+    role: String(selectedRole || '').toLowerCase(),
     name: formData.get('name'),
     email: formData.get('email'),
     password: formData.get('password')
@@ -64,7 +65,8 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     if (response.ok) {
       const userData = await response.json();
       localStorage.setItem('user', JSON.stringify(userData));
-      redirectBasedOnRole(userData.role);
+      const role = (userData && userData.user ? userData.user.role : userData.role) || loginData.role;
+      redirectBasedOnRole(String(role).toLowerCase());
     } else {
       alert('Login failed. Please check your credentials.');
     }

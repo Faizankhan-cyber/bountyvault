@@ -155,6 +155,12 @@
       color: #fff;
     }
 
+    .btn-warn {
+      background: rgba(245, 158, 11, 0.16);
+      border-color: rgba(245, 158, 11, 0.45);
+      color: #fde68a;
+    }
+
     .btn:disabled {
       opacity: 0.6;
       cursor: not-allowed;
@@ -277,6 +283,12 @@
       background: rgba(107, 114, 128, 0.2);
       border-color: rgba(107, 114, 128, 0.48);
       color: #d1d5db;
+    }
+
+    .status-refunded {
+      background: rgba(245, 158, 11, 0.2);
+      border-color: rgba(245, 158, 11, 0.52);
+      color: #fde68a;
     }
 
     .info-note {
@@ -890,6 +902,56 @@
       }
     }
 
+    async function raiseDisputeForBounty(bountyId) {
+      const bounty = state.bounties.find((item) => Number(item.id) === Number(bountyId));
+      if (!bounty) {
+        showToast("Bounty not found", "error");
+        return;
+      }
+
+      const reasonInput = window.prompt("Describe the dispute reason:");
+      if (reasonInput === null) {
+        return;
+      }
+
+      const reason = String(reasonInput || "").trim();
+      if (!reason) {
+        showToast("Dispute reason is required", "error");
+        return;
+      }
+
+      const confirmed = window.confirm("Raise dispute for this acquired bounty?");
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/bounties/" + Number(bountyId) + "/dispute", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            raised_by: String(state.user.email || "").trim().toLowerCase(),
+            reason,
+            evidence: null
+          })
+        });
+
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}));
+          showToast(error.error || "Failed to raise dispute", "error");
+          return;
+        }
+
+        showToast("Dispute raised successfully. Status moved to disputed.", "success");
+        await loadApplications();
+        await loadBrowseBounties();
+        await loadEarnings();
+      } catch (error) {
+        console.error("Worker dispute error", error);
+        showToast("Unable to raise dispute", "error");
+      }
+    }
+
     function renderApplications() {
       applicationsListNode.innerHTML = "";
 
@@ -913,6 +975,8 @@
           finalStatus = "disputed";
         } else if (isSelectedForThisWorker && bountyStatus === "completed") {
           finalStatus = "completed";
+        } else if (isSelectedForThisWorker && bountyStatus === "cancelled" && bounty.txn_id) {
+          finalStatus = "refunded";
         }
 
         const card = document.createElement("article");
@@ -935,6 +999,25 @@
             '</div>';
         }
 
+        if (finalStatus === "refunded") {
+          const txnId = bounty.txn_id || "N/A";
+          specialBlock =
+            '<div class="info-note">' +
+              'Dispute resolved in favor of poster. Escrow refunded.' +
+              (txnId !== "N/A"
+                ? ' <a class="lora-link" target="_blank" rel="noopener noreferrer" href="' + escapeHtml(loraLink(txnId)) + '">View txn: ' + escapeHtml(txnId) + '</a>'
+                : '') +
+            '</div>';
+        }
+
+        let disputeActionHtml = "";
+        if (isSelectedForThisWorker && bountyStatus === "acquired") {
+          disputeActionHtml =
+            '<div class="actions">' +
+              '<button class="btn btn-warn action-raise-dispute" type="button" data-bounty-id="' + Number(bounty.id) + '">Raise Dispute</button>' +
+            '</div>';
+        }
+
         card.innerHTML =
           '<div class="row">' +
             '<div>' +
@@ -948,7 +1031,8 @@
             '<span>Reward: ' + Number(bounty.reward || 0).toLocaleString() + ' ALGO</span>' +
             '<span>Deadline: ' + escapeHtml(formatDate(bounty.deadline)) + '</span>' +
           '</div>' +
-          specialBlock;
+          specialBlock +
+          disputeActionHtml;
 
         fragment.appendChild(card);
       });
@@ -1006,6 +1090,21 @@
         const bountyId = Number(applyBtn.getAttribute("data-id"));
         if (bountyId) {
           openApplyModal(bountyId);
+        }
+      });
+
+      applicationsListNode.addEventListener("click", (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) {
+          return;
+        }
+        const disputeBtn = target.closest(".action-raise-dispute");
+        if (!disputeBtn) {
+          return;
+        }
+        const bountyId = Number(disputeBtn.getAttribute("data-bounty-id"));
+        if (bountyId) {
+          raiseDisputeForBounty(bountyId);
         }
       });
 

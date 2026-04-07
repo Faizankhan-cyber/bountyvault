@@ -93,12 +93,14 @@ db.prepare(`
   )
 `).run();
 
-const ADMIN_EMAIL = "admin@bountyvault.local";
-const adminExists = db.prepare("SELECT id FROM users WHERE email = ?").get(ADMIN_EMAIL);
-if (!adminExists) {
+db.prepare("UPDATE users SET role = 'arbitrator' WHERE LOWER(role) = 'admin'").run();
+
+const ARBITRATOR_EMAIL = "arbitrator@bountyvault.local";
+const arbitratorExists = db.prepare("SELECT id FROM users WHERE email = ?").get(ARBITRATOR_EMAIL);
+if (!arbitratorExists) {
   db.prepare(
     "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)"
-  ).run("Admin", ADMIN_EMAIL, "admin123", "admin");
+  ).run("Arbitrator", ARBITRATOR_EMAIL, "admin123", "arbitrator");
 }
 
 const bountyStatusValues = ["open", "acquired", "disputed", "completed", "cancelled"];
@@ -132,8 +134,8 @@ app.post("/api/auth/signup", (req, res) => {
       return res.status(400).json({ error: "name, email, password, and role are required" });
     }
 
-    if (!["poster", "worker", "admin"].includes(role)) {
-      return res.status(400).json({ error: "role must be poster, worker, or admin" });
+    if (!["poster", "worker", "arbitrator"].includes(role)) {
+      return res.status(400).json({ error: "role must be poster, worker, or arbitrator" });
     }
 
     const existing = db.prepare("SELECT id FROM users WHERE email = ?").get(email);
@@ -459,8 +461,18 @@ app.post("/api/bounties/:id/dispute", (req, res) => {
     }
 
     const { raised_by, reason, evidence } = req.body;
-    if (!raised_by || !reason) {
+    const raisedBy = String(raised_by || "").trim().toLowerCase();
+    const disputeReason = String(reason || "").trim();
+
+    if (!raisedBy || !disputeReason) {
       return res.status(400).json({ error: "raised_by and reason are required" });
+    }
+
+    const posterEmail = String(bounty.poster_email || "").trim().toLowerCase();
+    const workerEmail = String(bounty.worker_email || "").trim().toLowerCase();
+    const isActorParticipant = raisedBy === posterEmail || (workerEmail && raisedBy === workerEmail);
+    if (!isActorParticipant) {
+      return res.status(403).json({ error: "only the selected poster or worker can raise a dispute" });
     }
 
     const existingOpenDispute = db
@@ -475,7 +487,7 @@ app.post("/api/bounties/:id/dispute", (req, res) => {
         `INSERT INTO disputes (bounty_id, raised_by, reason, evidence)
          VALUES (?, ?, ?, ?)`
       )
-      .run(bountyId, raised_by, reason, evidence || null);
+      .run(bountyId, raisedBy, disputeReason, evidence || null);
 
     db.prepare("UPDATE bounties SET status = 'disputed' WHERE id = ?").run(bountyId);
     db.prepare(
@@ -497,12 +509,21 @@ app.patch("/api/bounties/:id/resolve", (req, res) => {
       return res.status(400).json({ error: "invalid bounty id" });
     }
 
-    const { decision, txn_id, resolved_by } = req.body;
+    const { decision, txn_id, resolved_by, resolver_wallet } = req.body;
+    const resolvedBy = String(resolved_by || "").trim().toLowerCase();
+    const txnId = String(txn_id || "").trim();
     if (decision !== "worker" && decision !== "poster") {
       return res.status(400).json({ error: "decision must be exactly 'worker' or 'poster'" });
     }
-    if (!txn_id || !resolved_by) {
+    if (!txnId || !resolvedBy) {
       return res.status(400).json({ error: "txn_id and resolved_by are required" });
+    }
+
+    const resolver = db
+      .prepare("SELECT id, email, role FROM users WHERE LOWER(email) = ?")
+      .get(resolvedBy);
+    if (!resolver || String(resolver.role || "").toLowerCase() !== "arbitrator") {
+      return res.status(403).json({ error: "only arbitrator accounts can resolve disputes" });
     }
 
     const bounty = db.prepare("SELECT * FROM bounties WHERE id = ?").get(bountyId);
@@ -524,10 +545,15 @@ app.patch("/api/bounties/:id/resolve", (req, res) => {
       `UPDATE disputes
        SET decision = ?, resolved_by = ?, resolve_txn_id = ?, status = 'resolved'
        WHERE id = ?`
-    ).run(decision, resolved_by, txn_id, openDispute.id);
+    ).run(decision, resolvedBy, txnId, openDispute.id);
 
     const nextBountyStatus = decision === "worker" ? "completed" : "cancelled";
-    db.prepare("UPDATE bounties SET status = ?, txn_id = ? WHERE id = ?").run(nextBountyStatus, txn_id, bountyId);
+    db.prepare("UPDATE bounties SET status = ?, txn_id = ? WHERE id = ?").run(nextBountyStatus, txnId, bountyId);
+
+    const settlementLabel = decision === "worker" ? "completed" : "refunded";
+    const resolverDescriptor = resolver_wallet
+      ? `${resolvedBy} (${String(resolver_wallet).trim()})`
+      : resolvedBy;
 
     db.prepare(
       `INSERT INTO transactions (bounty_id, event_type, description, amount, txn_id)
@@ -535,9 +561,9 @@ app.patch("/api/bounties/:id/resolve", (req, res) => {
     ).run(
       bountyId,
       "resolved",
-      `Dispute resolved in favor of ${decision}`,
+      `Dispute ${settlementLabel} by arbitrator ${resolverDescriptor} in favor of ${decision}`,
       bounty.reward,
-      txn_id
+      txnId
     );
 
     const dispute = db.prepare("SELECT * FROM disputes WHERE id = ?").get(openDispute.id);

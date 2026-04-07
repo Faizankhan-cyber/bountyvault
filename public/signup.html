@@ -187,6 +187,7 @@
           <option value="" selected disabled>Select role</option>
           <option value="poster">Poster</option>
           <option value="worker">Worker</option>
+          <option value="arbitrator">Arbitrator</option>
         </select>
       </div>
 
@@ -210,7 +211,7 @@
         name: String(formData.get("name") || "").trim(),
         email: String(formData.get("email") || "").trim(),
         password: String(formData.get("password") || ""),
-        role: String(formData.get("role") || "").trim()
+        role: String(formData.get("role") || "").trim().toLowerCase()
       };
 
       try {

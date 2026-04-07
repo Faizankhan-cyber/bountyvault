@@ -233,7 +233,7 @@
   <main class="auth-shell">
     <section class="panel" aria-labelledby="welcome-title">
       <span class="eyebrow">Choose your role</span>
-      <h1 id="welcome-title">Access BountyVault as Poster, Worker, or Admin.</h1>
+      <h1 id="welcome-title">Access BountyVault as Poster, Worker, or Arbitrator.</h1>
       <p class="intro">Select a role to continue. Your role controls which dashboard you are redirected to after login.</p>
 
       <div class="role-selection">
@@ -245,8 +245,8 @@
           <h3>Worker</h3>
           <p>Submit work, claim payouts, and track active bounty opportunities.</p>
         </article>
-        <article class="role-card" data-role="admin">
-          <h3>Admin</h3>
+        <article class="role-card" data-role="arbitrator">
+          <h3>Arbitrator</h3>
           <p>Resolve disputes, maintain policy rules, and monitor platform health.</p>
         </article>
       </div>
@@ -295,8 +295,8 @@
         window.location.href = "worker.html";
         return;
       }
-      if (role === "admin") {
-        window.location.href = "admin.html";
+      if (role === "arbitrator") {
+        window.location.href = "arbitrator.html";
         return;
       }
       console.error("Unknown role:", role);
@@ -375,7 +375,7 @@
       event.preventDefault();
 
       if (!selectedRole) {
-        setError("Select Poster, Worker, or Admin before continuing.");
+        setError("Select Poster, Worker, or Arbitrator before continuing.");
         return;
       }
 

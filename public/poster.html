@@ -668,6 +668,14 @@
       return "open";
     }
 
+    function statusLabel(bounty) {
+      const normalized = statusClass(bounty && bounty.status);
+      if (normalized === "cancelled" && bounty && bounty.txn_id) {
+        return "refunded";
+      }
+      return normalized;
+    }
+
     function openConfirm(text, onConfirm, type) {
       confirmText.textContent = text;
       state.confirmAction = onConfirm;
@@ -777,6 +785,7 @@
 
       state.myBounties.forEach((bounty) => {
         const status = statusClass(bounty.status);
+        const label = statusLabel(bounty);
         const card = document.createElement("article");
         card.className = "bounty-card";
         const applicants = state.applicantsByBounty.get(Number(bounty.id)) || [];
@@ -818,7 +827,7 @@
               '<h3>' + (bounty.title || "Untitled") + '</h3>' +
               '<p class="muted">' + (bounty.description || "No description") + '</p>' +
             '</div>' +
-            '<span class="status-badge status-' + status + '">' + status + '</span>' +
+            '<span class="status-badge status-' + status + '">' + label + '</span>' +
           '</div>' +
           '<div class="row muted">' +
             '<span>Reward: ' + Number(bounty.reward || 0).toLocaleString() + ' ALGO</span>' +
