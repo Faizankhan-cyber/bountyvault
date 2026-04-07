@@ -15,7 +15,7 @@ if (!fs.existsSync("./data")) {
   fs.mkdirSync("./data");
 }
 
-const db = new Database("./data/bountyvault.db");
+const db = new Database('/data/bountyvault.db');
 
 db.prepare("PRAGMA foreign_keys = ON").run();
 
@@ -293,6 +293,7 @@ app.get("/api/bounties/:id/applicants", (req, res) => {
     const applicants = db
       .prepare("SELECT * FROM applicants WHERE bounty_id = ? ORDER BY id DESC")
       .all(bountyId);
+
     console.log("[APPLICANTS][FETCH] bounty_id=", bountyId, "count=", applicants.length);
     return res.json(applicants);
   } catch (error) {
@@ -317,7 +318,8 @@ function selectBountyApplicant(bountyId, applicant) {
     bountyId
   );
 
-  return db.prepare("SELECT * FROM bounties WHERE id = ?").get(bountyId);
+  const updatedBounty = db.prepare("SELECT * FROM bounties WHERE id = ?").get(bountyId);
+  return updatedBounty;
 }
 
 app.post("/api/bounties/:id/select", (req, res) => {
@@ -380,11 +382,21 @@ app.post("/api/bounties/:id/applicants", (req, res) => {
       return res.status(400).json({ error: "applications are allowed only when bounty is open" });
     }
 
-    const worker_name = String((req.body && (req.body.worker_name || req.body.name)) || "").trim();
-    const worker_email = String((req.body && (req.body.worker_email || req.body.email)) || "").trim().toLowerCase();
-    const worker_skills = String((req.body && (req.body.worker_skills || req.body.skills)) || "").trim();
-    const worker_reason = String((req.body && (req.body.worker_reason || req.body.reason)) || "").trim();
-    const wallet_address = String((req.body && (req.body.wallet_address || req.body.walletAddress)) || "").trim();
+    const worker_name = String(
+      (req.body && (req.body.worker_name || req.body.name)) || ""
+    ).trim();
+    const worker_email = String(
+      (req.body && (req.body.worker_email || req.body.email)) || ""
+    ).trim().toLowerCase();
+    const worker_skills = String(
+      (req.body && (req.body.worker_skills || req.body.skills)) || ""
+    ).trim();
+    const worker_reason = String(
+      (req.body && (req.body.worker_reason || req.body.reason)) || ""
+    ).trim();
+    const wallet_address = String(
+      (req.body && (req.body.wallet_address || req.body.walletAddress)) || ""
+    ).trim();
 
     if (!worker_name || !worker_email || !worker_skills || !worker_reason) {
       return res.status(400).json({ error: "missing required applicant fields" });
@@ -393,10 +405,10 @@ app.post("/api/bounties/:id/applicants", (req, res) => {
     const result = db
       .prepare(
         `INSERT INTO applicants
-         (bounty_id, worker_name, worker_email, worker_skills, worker_reason, wallet_address)
-         VALUES (?, ?, ?, ?, ?, ?)`
+          (bounty_id, worker_name, worker_email, worker_skills, worker_reason, wallet_address)
+          VALUES (?, ?, ?, ?, ?, ?)`
       )
-      .run(bountyId, worker_name, worker_email, worker_skills, worker_reason, wallet_address || null);
+        .run(bountyId, worker_name, worker_email, worker_skills, worker_reason, wallet_address || null);
 
     const applicant = db.prepare("SELECT * FROM applicants WHERE id = ?").get(result.lastInsertRowid);
     console.log("[APPLICANTS][CREATE] saved applicant id=", applicant && applicant.id, "for bounty_id=", bountyId);

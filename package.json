@@ -2,10 +2,8 @@
   "name": "bountyvault",
   "version": "1.0.0",
   "description": "BountyVault is a decentralized bounty escrow platform built on Algorand, enabling trustless payments and transparent on-chain dispute resolution without intermediaries.",
-  "main": "src/server.js",
+  "main": "index.js",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "node src/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

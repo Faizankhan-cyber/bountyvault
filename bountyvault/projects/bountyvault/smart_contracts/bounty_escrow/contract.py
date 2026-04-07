@@ -14,7 +14,7 @@ class BountyEscrow(ARC4Contract):
         self.arbitrator.value = arc4.Address(Global.creator_address)
         self.reward = GlobalState(arc4.UInt64)
 
-    @arc4.abimethod()
+    4@arc4.abimethod()
     def post_bounty(self) -> None:
         self.poster.value = arc4.Address(Txn.sender)
         self.reward.value = arc4.UInt64(Txn.amount)
