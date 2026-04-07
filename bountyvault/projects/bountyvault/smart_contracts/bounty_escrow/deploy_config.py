@@ -11,13 +11,8 @@ def deploy() -> None:
         BountyEscrowFactory,
     )
 
-    algorand = algokit_utils.AlgorandClient.testnet()
-    from algosdk import mnemonic
-
-    mnemonic_phrase = "share believe faint more extra shrug crazy south record life amateur fancy yellow play fine ginger glimpse hobby giraffe deal mushroom speak tackle abandon empower"
-    private_key = mnemonic.to_private_key(mnemonic_phrase)
-
-deployer_ = algorand.account.from_private_key(private_key)
+    algorand = algokit_utils.AlgorandClient.from_environment()
+    deployer_ = algorand.account.from_environment("DEPLOYER")
 
     factory = algorand.client.get_typed_app_factory(
         BountyEscrowFactory, default_sender=deployer_.address
