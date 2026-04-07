@@ -700,7 +700,18 @@
       walletStatusNode.classList.toggle("disconnected", !connected);
     }
 
+    function walletAllowedInCurrentContext() {
+      const host = window.location.hostname;
+      const localHost = host === "localhost" || host === "127.0.0.1";
+      return window.isSecureContext || localHost;
+    }
+
     async function connectWallet() {
+      if (!walletAllowedInCurrentContext()) {
+        showToast("Wallet requires HTTPS (or localhost) for WalletConnect.", "error");
+        return;
+      }
+
       if (!peraWallet) {
         showToast("Pera Wallet SDK is unavailable", "error");
         return;
@@ -716,7 +727,12 @@
         }
       } catch (error) {
         console.error("Wallet connection failed", error);
-        showToast("Wallet connection failed", "error");
+        const message = String((error && error.message) || "").toLowerCase();
+        if (message.includes("cancel") || message.includes("reject")) {
+          showToast("Wallet connection rejected", "error");
+        } else {
+          showToast("Wallet connection failed", "error");
+        }
       }
     }
 

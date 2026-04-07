@@ -722,7 +722,18 @@
         : "Wallet: not connected";
     }
 
+    function walletAllowedInCurrentContext() {
+      const host = window.location.hostname;
+      const localHost = host === "localhost" || host === "127.0.0.1";
+      return window.isSecureContext || localHost;
+    }
+
     async function connectWallet() {
+      if (!walletAllowedInCurrentContext()) {
+        showToast("Wallet requires HTTPS (or localhost) for WalletConnect.", "warn");
+        return;
+      }
+
       if (!peraWallet) {
         showToast("Pera Wallet SDK is unavailable", "warn");
         return;
@@ -738,7 +749,12 @@
         }
       } catch (error) {
         console.error("Wallet connection failed", error);
-        showToast("Wallet connection failed", "warn");
+        const message = String((error && error.message) || "").toLowerCase();
+        if (message.includes("cancel") || message.includes("reject")) {
+          showToast("Wallet connection rejected", "warn");
+        } else {
+          showToast("Wallet connection failed", "warn");
+        }
       }
     }
 
@@ -793,6 +809,10 @@
     }
 
     async function callResolveDisputeArc4(recipient, decision) {
+      if (!walletAllowedInCurrentContext()) {
+        throw new Error("Wallet signing requires HTTPS (or localhost)");
+      }
+
       if (!APP_ID) {
         throw new Error("Missing app id. Set localStorage arc4AppId before resolving disputes.");
       }
@@ -1073,7 +1093,12 @@
         }, 5000);
       } catch (error) {
         console.error("Resolve dispute error", error);
-        showToast("Unable to resolve dispute: " + (error && error.message ? error.message : "Unknown error"), "warn");
+        const message = String((error && error.message) || "").toLowerCase();
+        if (message.includes("cancel") || message.includes("reject")) {
+          showToast("Transaction rejected in wallet", "warn");
+        } else {
+          showToast("Unable to resolve dispute: " + (error && error.message ? error.message : "Unknown error"), "warn");
+        }
       }
     }
 

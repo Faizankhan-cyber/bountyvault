@@ -716,7 +716,18 @@
       walletStatus.classList.toggle("disconnected", !connected);
     }
 
+    function walletAllowedInCurrentContext() {
+      const host = window.location.hostname;
+      const localHost = host === "localhost" || host === "127.0.0.1";
+      return window.isSecureContext || localHost;
+    }
+
     async function connectWallet() {
+      if (!walletAllowedInCurrentContext()) {
+        showToast("Wallet requires HTTPS (or localhost) for WalletConnect.", "");
+        return;
+      }
+
       if (!peraWallet) {
         showToast("Pera Wallet SDK is unavailable", "");
         return;
@@ -732,7 +743,12 @@
         }
       } catch (error) {
         console.error("Wallet connection failed", error);
-        showToast("Wallet connection failed", "");
+        const message = String((error && error.message) || "").toLowerCase();
+        if (message.includes("cancel") || message.includes("reject")) {
+          showToast("Wallet connection rejected", "");
+        } else {
+          showToast("Wallet connection failed", "");
+        }
       }
     }
 
@@ -781,6 +797,10 @@
     }
 
     async function callReleasePaymentArc4(workerAddress) {
+      if (!walletAllowedInCurrentContext()) {
+        throw new Error("Wallet signing requires HTTPS (or localhost)");
+      }
+
       if (!APP_ID) {
         throw new Error("Missing app id. Set localStorage arc4AppId before releasing payment.");
       }
@@ -1186,7 +1206,12 @@
         loadTransactions();
       } catch (error) {
         console.error("Release payment error", error);
-        showToast("Could not release payment", "");
+        const message = String((error && error.message) || "").toLowerCase();
+        if (message.includes("cancel") || message.includes("reject")) {
+          showToast("Transaction rejected in wallet", "");
+        } else {
+          showToast("Could not release payment", "");
+        }
       }
     }
 
