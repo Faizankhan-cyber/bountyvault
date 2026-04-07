@@ -78,6 +78,45 @@
       flex-wrap: wrap;
     }
 
+    .wallet-chip {
+      border: 1px solid rgba(99, 102, 241, 0.42);
+      border-radius: 999px;
+      background: rgba(99, 102, 241, 0.12);
+      color: #c7d2fe;
+      padding: 0.38rem 0.72rem;
+      font-size: 0.84rem;
+      max-width: 190px;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .wallet-status {
+      border-radius: 999px;
+      padding: 0.34rem 0.72rem;
+      font-size: 0.82rem;
+      font-weight: 700;
+      border: 1px solid transparent;
+    }
+
+    .wallet-status.connected {
+      background: rgba(34, 197, 94, 0.16);
+      border-color: rgba(34, 197, 94, 0.5);
+      color: #bbf7d0;
+    }
+
+    .wallet-status.disconnected {
+      background: rgba(148, 163, 184, 0.1);
+      border-color: rgba(148, 163, 184, 0.28);
+      color: #cbd5e1;
+    }
+
+    .btn-info {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: rgba(56, 189, 248, 0.45);
+      color: #bae6fd;
+    }
+
     .btn-logout {
       border: 1px solid rgba(239, 68, 68, 0.3);
       background: rgba(239, 68, 68, 0.14);
@@ -496,6 +535,9 @@
         <p class="subtitle">Browse bounties, track application decisions, and monitor your earnings.</p>
       </div>
       <div class="header-actions">
+        <button class="btn btn-info" id="connect-wallet-btn" type="button">Connect Wallet</button>
+        <div class="wallet-chip" id="wallet-chip">Wallet: not connected</div>
+        <div class="wallet-status disconnected" id="wallet-status">Disconnected</div>
         <div class="worker-chip" id="worker-chip">Checking worker session...</div>
         <button class="btn btn-logout" id="logout-btn" type="button">Logout</button>
       </div>
@@ -582,15 +624,21 @@
 
   <div class="toast-wrap" id="toast-wrap" aria-live="polite"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@perawallet/connect/dist/perawallet-connect.umd.min.js"></script>
+
   <script>
     const state = {
       user: null,
       selectedBountyId: null,
       bounties: [],
-      applications: []
+      applications: [],
+      activeWalletAddress: null
     };
 
     const workerChipNode = document.getElementById("worker-chip");
+    const walletChipNode = document.getElementById("wallet-chip");
+    const walletStatusNode = document.getElementById("wallet-status");
+    const connectWalletBtn = document.getElementById("connect-wallet-btn");
     const logoutBtn = document.getElementById("logout-btn");
 
     const browseListNode = document.getElementById("browse-list");
@@ -612,6 +660,16 @@
     const submitApplyBtn = document.getElementById("submit-apply");
 
     const toastWrap = document.getElementById("toast-wrap");
+    let peraWallet = null;
+
+    function initPeraWallet() {
+      const PeraClass =
+        (window.PeraWalletConnect && window.PeraWalletConnect.PeraWalletConnect) ||
+        window.PeraWalletConnect;
+      if (PeraClass) {
+        peraWallet = new PeraClass();
+      }
+    }
 
     function showToast(message, type) {
       const node = document.createElement("div");
@@ -623,6 +681,64 @@
 
     function setLoading(node, isLoading) {
       node.classList.toggle("active", isLoading);
+    }
+
+    function truncateAddress(address) {
+      if (!address || address.length < 12) {
+        return address || "";
+      }
+      return address.slice(0, 6) + "..." + address.slice(-4);
+    }
+
+    function setWalletChip() {
+      const connected = Boolean(state.activeWalletAddress);
+      walletChipNode.textContent = connected
+        ? "Wallet: " + truncateAddress(state.activeWalletAddress)
+        : "Wallet: not connected";
+      walletStatusNode.textContent = connected ? "Connected" : "Disconnected";
+      walletStatusNode.classList.toggle("connected", connected);
+      walletStatusNode.classList.toggle("disconnected", !connected);
+    }
+
+    async function connectWallet() {
+      if (!peraWallet) {
+        showToast("Pera Wallet SDK is unavailable", "error");
+        return;
+      }
+
+      try {
+        const accounts = await peraWallet.connect();
+        if (Array.isArray(accounts) && accounts[0]) {
+          state.activeWalletAddress = accounts[0];
+          localStorage.setItem("walletAddress", state.activeWalletAddress);
+          setWalletChip();
+          showToast("Wallet connected", "success");
+        }
+      } catch (error) {
+        console.error("Wallet connection failed", error);
+        showToast("Wallet connection failed", "error");
+      }
+    }
+
+    async function hydrateWalletSession() {
+      const cachedAddress = localStorage.getItem("walletAddress");
+      if (cachedAddress) {
+        state.activeWalletAddress = cachedAddress;
+      }
+
+      if (peraWallet && peraWallet.reconnectSession) {
+        try {
+          const accounts = await peraWallet.reconnectSession();
+          if (Array.isArray(accounts) && accounts[0]) {
+            state.activeWalletAddress = accounts[0];
+            localStorage.setItem("walletAddress", state.activeWalletAddress);
+          }
+        } catch (error) {
+          console.error("Wallet reconnect failed", error);
+        }
+      }
+
+      setWalletChip();
     }
 
     function parseUserSession() {
@@ -806,11 +922,17 @@
         return;
       }
 
+      if (!state.activeWalletAddress) {
+        showToast("Connect Pera Wallet before applying so you can receive payouts.", "error");
+        return;
+      }
+
       const payload = {
         worker_name: String(applyNameInput.value || "").trim(),
         worker_email: String(applyEmailInput.value || "").trim(),
         worker_skills: String(applySkillsInput.value || "").trim(),
-        worker_reason: String(applyReasonInput.value || "").trim()
+        worker_reason: String(applyReasonInput.value || "").trim(),
+        wallet_address: state.activeWalletAddress
       };
 
       if (!payload.worker_name || !payload.worker_email || !payload.worker_skills || !payload.worker_reason) {
@@ -952,6 +1074,44 @@
       }
     }
 
+    async function markBountyCompleted(bountyId) {
+      const bounty = state.bounties.find((item) => Number(item.id) === Number(bountyId));
+      if (!bounty) {
+        showToast("Bounty not found", "error");
+        return;
+      }
+
+      const confirmed = window.confirm("Mark this bounty as completed?");
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        const txnId = "txn-" + Number(bountyId) + "-" + Date.now();
+        const response = await fetch("/api/bounties/" + Number(bountyId) + "/complete", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ txn_id: txnId })
+        });
+
+        const data = await response.json().catch(() => ({}));
+        console.log("[WORKER][COMPLETE] response", data);
+
+        if (!response.ok) {
+          showToast(data.error || "Failed to mark bounty completed", "error");
+          return;
+        }
+
+        showToast("Bounty marked completed successfully.", "success");
+        await loadApplications();
+        await loadBrowseBounties();
+        await loadEarnings();
+      } catch (error) {
+        console.error("Worker completion error", error);
+        showToast("Unable to mark bounty completed", "error");
+      }
+    }
+
     function renderApplications() {
       applicationsListNode.innerHTML = "";
 
@@ -1014,6 +1174,7 @@
         if (isSelectedForThisWorker && bountyStatus === "acquired") {
           disputeActionHtml =
             '<div class="actions">' +
+              '<button class="btn btn-success action-complete-bounty" type="button" data-bounty-id="' + Number(bounty.id) + '">Completed</button>' +
               '<button class="btn btn-warn action-raise-dispute" type="button" data-bounty-id="' + Number(bounty.id) + '">Raise Dispute</button>' +
             '</div>';
         }
@@ -1070,6 +1231,8 @@
         window.location.href = "auth.html";
       });
 
+      connectWalletBtn.addEventListener("click", connectWallet);
+
       document.querySelectorAll(".tab-btn").forEach((btn) => {
         btn.addEventListener("click", () => switchTab(btn.getAttribute("data-tab")));
       });
@@ -1096,6 +1259,14 @@
       applicationsListNode.addEventListener("click", (event) => {
         const target = event.target;
         if (!(target instanceof HTMLElement)) {
+          return;
+        }
+        const completeBtn = target.closest(".action-complete-bounty");
+        if (completeBtn) {
+          const bountyId = Number(completeBtn.getAttribute("data-bounty-id"));
+          if (bountyId) {
+            markBountyCompleted(bountyId);
+          }
           return;
         }
         const disputeBtn = target.closest(".action-raise-dispute");
@@ -1127,6 +1298,7 @@
     }
 
     async function init() {
+      initPeraWallet();
       state.user = parseUserSession();
       if (!state.user) {
         return;
@@ -1136,6 +1308,7 @@
         (state.user.name || "Worker") + " | " + (state.user.email || "no-email") + " | role: worker";
 
       bindEvents();
+      await hydrateWalletSession();
       await loadApplications();
       await loadBrowseBounties();
       await loadEarnings();

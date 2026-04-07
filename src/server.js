@@ -45,10 +45,20 @@ db.prepare(`
     worker_email TEXT,
     worker_skills TEXT,
     worker_reason TEXT,
+    assigned_worker TEXT,
+    worker_address TEXT,
     txn_id TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
   )
 `).run();
+
+const bountyColumns = db.prepare("PRAGMA table_info(bounties)").all();
+if (!bountyColumns.some((column) => column.name === "assigned_worker")) {
+  db.prepare("ALTER TABLE bounties ADD COLUMN assigned_worker TEXT").run();
+}
+if (!bountyColumns.some((column) => column.name === "worker_address")) {
+  db.prepare("ALTER TABLE bounties ADD COLUMN worker_address TEXT").run();
+}
 
 db.prepare(`
   CREATE TABLE IF NOT EXISTS applicants (
@@ -58,11 +68,17 @@ db.prepare(`
     worker_email TEXT NOT NULL,
     worker_skills TEXT NOT NULL,
     worker_reason TEXT NOT NULL,
+    wallet_address TEXT,
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'selected', 'rejected')),
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (bounty_id) REFERENCES bounties(id) ON DELETE CASCADE
   )
 `).run();
+
+const applicantColumns = db.prepare("PRAGMA table_info(applicants)").all();
+if (!applicantColumns.some((column) => column.name === "wallet_address")) {
+  db.prepare("ALTER TABLE applicants ADD COLUMN wallet_address TEXT").run();
+}
 
 db.prepare(`
   CREATE TABLE IF NOT EXISTS transactions (
@@ -285,6 +301,70 @@ app.get("/api/bounties/:id/applicants", (req, res) => {
   }
 });
 
+function selectBountyApplicant(bountyId, applicant) {
+  db.prepare("UPDATE applicants SET status = 'selected' WHERE id = ?").run(applicant.id);
+  db.prepare("UPDATE applicants SET status = 'rejected' WHERE bounty_id = ? AND id != ?").run(bountyId, applicant.id);
+  db.prepare(
+    `UPDATE bounties
+     SET status = 'acquired', assigned_worker = ?, worker_address = ?, worker_name = ?, worker_email = ?, worker_skills = ?, worker_reason = ?
+     WHERE id = ?`
+  ).run(
+    applicant.worker_email,
+    applicant.wallet_address || null,
+    applicant.worker_name,
+    applicant.worker_email,
+    applicant.worker_skills,
+    applicant.worker_reason,
+    bountyId
+  );
+
+  const updatedBounty = db.prepare("SELECT * FROM bounties WHERE id = ?").get(bountyId);
+  return updatedBounty;
+}
+
+app.post("/api/bounties/:id/select", (req, res) => {
+  try {
+    const bountyId = parseId(req.params.id);
+    if (!bountyId) {
+      return res.status(400).json({ error: "invalid bounty id" });
+    }
+
+    const bounty = db.prepare("SELECT * FROM bounties WHERE id = ?").get(bountyId);
+    if (!bounty) {
+      return res.status(404).json({ error: "bounty not found" });
+    }
+    if (bounty.status !== "open") {
+      return res.status(400).json({ error: "bounty must be open to select a worker" });
+    }
+
+    const workerEmail = String((req.body && req.body.worker_email) || "").trim().toLowerCase();
+    if (!workerEmail) {
+      return res.status(400).json({ error: "worker_email is required" });
+    }
+
+    const applicant = db
+      .prepare("SELECT * FROM applicants WHERE bounty_id = ? AND LOWER(worker_email) = ?")
+      .get(bountyId, workerEmail);
+    if (!applicant) {
+      return res.status(404).json({ error: "applicant not found for this worker email" });
+    }
+    if (!ensureApplicantStatus(applicant.status) || applicant.status !== "pending") {
+      return res.status(400).json({ error: "only pending applicants can be selected" });
+    }
+
+    const updatedBounty = selectBountyApplicant(bountyId, applicant);
+
+    db.prepare(
+      `INSERT INTO transactions (bounty_id, event_type, description, amount)
+       VALUES (?, ?, ?, ?)`
+    ).run(bountyId, "acquired", "Worker selected for bounty", bounty.reward);
+
+    return res.json({ message: "worker selected", bounty: updatedBounty });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 app.post("/api/bounties/:id/applicants", (req, res) => {
   try {
     console.log("[APPLICANTS][CREATE] request body:", req.body);
@@ -314,6 +394,9 @@ app.post("/api/bounties/:id/applicants", (req, res) => {
     const worker_reason = String(
       (req.body && (req.body.worker_reason || req.body.reason)) || ""
     ).trim();
+    const wallet_address = String(
+      (req.body && (req.body.wallet_address || req.body.walletAddress)) || ""
+    ).trim();
 
     if (!worker_name || !worker_email || !worker_skills || !worker_reason) {
       return res.status(400).json({ error: "missing required applicant fields" });
@@ -322,10 +405,10 @@ app.post("/api/bounties/:id/applicants", (req, res) => {
     const result = db
       .prepare(
         `INSERT INTO applicants
-         (bounty_id, worker_name, worker_email, worker_skills, worker_reason)
-         VALUES (?, ?, ?, ?, ?)`
+          (bounty_id, worker_name, worker_email, worker_skills, worker_reason, wallet_address)
+          VALUES (?, ?, ?, ?, ?, ?)`
       )
-      .run(bountyId, worker_name, worker_email, worker_skills, worker_reason);
+        .run(bountyId, worker_name, worker_email, worker_skills, worker_reason, wallet_address || null);
 
     const applicant = db.prepare("SELECT * FROM applicants WHERE id = ?").get(result.lastInsertRowid);
     console.log("[APPLICANTS][CREATE] saved applicant id=", applicant && applicant.id, "for bounty_id=", bountyId);
@@ -362,26 +445,13 @@ app.patch("/api/bounties/:id/select/:appId", (req, res) => {
       return res.status(400).json({ error: "only pending applicants can be selected" });
     }
 
-    db.prepare("UPDATE applicants SET status = 'selected' WHERE id = ?").run(appId);
-    db.prepare("UPDATE applicants SET status = 'rejected' WHERE bounty_id = ? AND id != ?").run(bountyId, appId);
-    db.prepare(
-      `UPDATE bounties
-       SET status = 'acquired', worker_name = ?, worker_email = ?, worker_skills = ?, worker_reason = ?
-       WHERE id = ?`
-    ).run(
-      applicant.worker_name,
-      applicant.worker_email,
-      applicant.worker_skills,
-      applicant.worker_reason,
-      bountyId
-    );
+    const updatedBounty = selectBountyApplicant(bountyId, applicant);
 
     db.prepare(
       `INSERT INTO transactions (bounty_id, event_type, description, amount)
        VALUES (?, ?, ?, ?)`
     ).run(bountyId, "acquired", "Applicant selected for bounty", bounty.reward);
 
-    const updatedBounty = db.prepare("SELECT * FROM bounties WHERE id = ?").get(bountyId);
     return res.json(updatedBounty);
   } catch (error) {
     return res.status(500).json({ error: error.message });

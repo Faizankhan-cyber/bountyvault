@@ -75,6 +75,45 @@
       flex-wrap: wrap;
     }
 
+    .wallet-chip {
+      border: 1px solid rgba(99, 102, 241, 0.42);
+      border-radius: 999px;
+      background: rgba(99, 102, 241, 0.12);
+      color: #c7d2fe;
+      padding: 0.38rem 0.72rem;
+      font-size: 0.84rem;
+      max-width: 190px;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .wallet-status {
+      border-radius: 999px;
+      padding: 0.34rem 0.72rem;
+      font-size: 0.82rem;
+      font-weight: 700;
+      border: 1px solid transparent;
+    }
+
+    .wallet-status.connected {
+      background: rgba(34, 197, 94, 0.16);
+      border-color: rgba(34, 197, 94, 0.5);
+      color: #bbf7d0;
+    }
+
+    .wallet-status.disconnected {
+      background: rgba(148, 163, 184, 0.1);
+      border-color: rgba(148, 163, 184, 0.28);
+      color: #cbd5e1;
+    }
+
+    .btn-info {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: rgba(56, 189, 248, 0.45);
+      color: #bae6fd;
+    }
+
     .tabs {
       display: flex;
       gap: 0.55rem;
@@ -446,6 +485,9 @@
         <p class="subheading">Create bounties, manage payouts, and monitor dispute flow.</p>
       </div>
       <div class="header-actions">
+        <button class="btn btn-info" id="connect-wallet-btn" type="button">Connect Wallet</button>
+        <div class="wallet-chip" id="wallet-chip">Wallet: not connected</div>
+        <div class="wallet-status disconnected" id="wallet-status">Disconnected</div>
         <div class="user-chip" id="user-chip">Loading user...</div>
         <button class="btn btn-logout" id="logout-btn" type="button">Logout</button>
       </div>
@@ -565,6 +607,8 @@
 
   <div class="toast-wrap" id="toast-wrap" aria-live="polite"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@perawallet/connect/dist/perawallet-connect.umd.min.js"></script>
+
   <script>
     const state = {
       user: null,
@@ -572,10 +616,15 @@
       applicantsByBounty: new Map(),
       transactions: [],
       selectedDisputeBounty: null,
-      confirmAction: null
+      selectingWorkerBountyId: null,
+      confirmAction: null,
+      activeWalletAddress: null
     };
 
     const userChip = document.getElementById("user-chip");
+    const walletChip = document.getElementById("wallet-chip");
+    const walletStatus = document.getElementById("wallet-status");
+    const connectWalletBtn = document.getElementById("connect-wallet-btn");
     const logoutBtn = document.getElementById("logout-btn");
 
     const myBountiesNode = document.getElementById("my-bounties");
@@ -597,6 +646,19 @@
     const confirmOkBtn = document.getElementById("confirm-ok");
 
     const toastWrapNode = document.getElementById("toast-wrap");
+
+    const APP_ID = Number(localStorage.getItem("arc4AppId") || 0);
+    const ALGOD_SERVER = localStorage.getItem("algodServer") || "https://testnet-api.algonode.cloud";
+    let peraWallet = null;
+
+    function initPeraWallet() {
+      const PeraClass =
+        (window.PeraWalletConnect && window.PeraWalletConnect.PeraWalletConnect) ||
+        window.PeraWalletConnect;
+      if (PeraClass) {
+        peraWallet = new PeraClass();
+      }
+    }
 
     function parseLocalUser() {
       const role = localStorage.getItem("userRole");
@@ -637,6 +699,121 @@
       });
     }
 
+    function truncateAddress(address) {
+      if (!address || address.length < 12) {
+        return address || "";
+      }
+      return address.slice(0, 6) + "..." + address.slice(-4);
+    }
+
+    function setWalletChip() {
+      const connected = Boolean(state.activeWalletAddress);
+      walletChip.textContent = connected
+        ? "Wallet: " + truncateAddress(state.activeWalletAddress)
+        : "Wallet: not connected";
+      walletStatus.textContent = connected ? "Connected" : "Disconnected";
+      walletStatus.classList.toggle("connected", connected);
+      walletStatus.classList.toggle("disconnected", !connected);
+    }
+
+    async function connectWallet() {
+      if (!peraWallet) {
+        showToast("Pera Wallet SDK is unavailable", "");
+        return;
+      }
+
+      try {
+        const accounts = await peraWallet.connect();
+        if (Array.isArray(accounts) && accounts[0]) {
+          state.activeWalletAddress = accounts[0];
+          localStorage.setItem("walletAddress", state.activeWalletAddress);
+          setWalletChip();
+          showToast("Wallet connected", "success");
+        }
+      } catch (error) {
+        console.error("Wallet connection failed", error);
+        showToast("Wallet connection failed", "");
+      }
+    }
+
+    async function hydrateWalletSession() {
+      const cachedAddress = localStorage.getItem("walletAddress");
+      if (cachedAddress) {
+        state.activeWalletAddress = cachedAddress;
+      }
+
+      if (peraWallet && peraWallet.reconnectSession) {
+        try {
+          const accounts = await peraWallet.reconnectSession();
+          if (Array.isArray(accounts) && accounts[0]) {
+            state.activeWalletAddress = accounts[0];
+            localStorage.setItem("walletAddress", state.activeWalletAddress);
+          }
+        } catch (error) {
+          console.error("Wallet reconnect failed", error);
+        }
+      }
+
+      setWalletChip();
+    }
+
+    async function getAlgosdk() {
+      return await import("https://cdn.jsdelivr.net/npm/algosdk/+esm");
+    }
+
+    function getPeraSigner() {
+      return async function signer(txnGroup, indexesToSign) {
+        if (!state.activeWalletAddress) {
+          throw new Error("Wallet not connected");
+        }
+
+        const txnsToSign = txnGroup.map((txn, index) => ({
+          txn,
+          signers: indexesToSign.includes(index) ? [state.activeWalletAddress] : []
+        }));
+
+        const signed = await peraWallet.signTransaction([txnsToSign]);
+        if (Array.isArray(signed) && Array.isArray(signed[0])) {
+          return signed[0];
+        }
+        return signed;
+      };
+    }
+
+    async function callReleasePaymentArc4(workerAddress) {
+      if (!APP_ID) {
+        throw new Error("Missing app id. Set localStorage arc4AppId before releasing payment.");
+      }
+
+      if (!state.activeWalletAddress) {
+        await connectWallet();
+      }
+      if (!state.activeWalletAddress) {
+        throw new Error("Wallet not connected");
+      }
+
+      const algosdk = await getAlgosdk();
+      const algod = new algosdk.Algodv2("", ALGOD_SERVER, "");
+      const suggestedParams = await algod.getTransactionParams().do();
+      const releasePaymentMethod = new algosdk.ABIMethod({
+        name: "release_payment",
+        args: [{ type: "address", name: "worker" }],
+        returns: { type: "void" }
+      });
+      const atc = new algosdk.AtomicTransactionComposer();
+      atc.addMethodCall({
+        appID: APP_ID,
+        method: releasePaymentMethod,
+        sender: state.activeWalletAddress,
+        suggestedParams,
+        methodArgs: [workerAddress],
+        signer: getPeraSigner()
+      });
+
+      const result = await atc.execute(algod, 4);
+      return result.txIDs[0];
+    }
+
     function showToast(message, type) {
       const node = document.createElement("div");
       node.className = "toast" + (type ? " " + type : "");
@@ -674,6 +851,81 @@
         return "refunded";
       }
       return normalized;
+    }
+
+    function renderApplicantsBlock(bounty, applicants) {
+      const status = statusClass(bounty.status);
+      if (!applicants.length) {
+        return '<div class="muted">No applicants yet.</div>';
+      }
+
+      return '<div class="applicants-block">' +
+        '<div class="applicants-title">Applicants (' + applicants.length + ')</div>' +
+        applicants.map((app) => {
+          const workerEmail = String(app.worker_email || app.email || "").toLowerCase();
+          const isPending = String(app.status || "pending").toLowerCase() === "pending";
+          const isSelecting = state.selectingWorkerBountyId === Number(bounty.id);
+          const canSelect = status === "open" && isPending && !isSelecting;
+
+          return (
+            '<div class="applicant-item">' +
+              '<div class="applicant-name">' + (app.worker_name || app.name || "Unknown") + '</div>' +
+              '<div class="muted">Email: ' + (app.worker_email || app.email || "-") + '</div>' +
+              '<div class="muted">Skills: ' + (app.worker_skills || app.skills || "-") + '</div>' +
+              '<div class="muted">Reason: ' + (app.worker_reason || app.reason || "-") + '</div>' +
+              '<div class="actions">' +
+                '<button type="button" class="btn btn-success action-select-worker" data-bounty-id="' + Number(bounty.id) + '" data-worker-email="' + String(workerEmail).replace(/"/g, '&quot;') + '" ' + (canSelect ? '' : 'disabled') + '>' +
+                  (isSelecting ? 'Selecting...' : 'Select Worker') +
+                '</button>' +
+              '</div>' +
+            '</div>'
+          );
+        }).join("") +
+      '</div>';
+    }
+
+    async function selectWorkerForBounty(bountyId, workerEmail) {
+      try {
+        state.selectingWorkerBountyId = Number(bountyId);
+        renderMyBounties();
+
+        const response = await fetch("/api/bounties/" + bountyId + "/select", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ worker_email: workerEmail })
+        });
+
+        const data = await response.json().catch(() => ({}));
+        console.log("[POSTER][SELECT] response", data);
+
+        if (!response.ok) {
+          showToast(data.error || "Failed to select worker", "");
+          return;
+        }
+
+        const updatedBounty = data.bounty || data;
+        state.myBounties = state.myBounties.map((bounty) => {
+          if (Number(bounty.id) !== Number(bountyId)) {
+            return bounty;
+          }
+          return {
+            ...bounty,
+            ...updatedBounty,
+            status: "acquired",
+            assigned_worker: workerEmail
+          };
+        });
+
+        await loadApplicantsForMyBounties();
+        renderMyBounties();
+        showToast("Worker selected successfully", "success");
+      } catch (error) {
+        console.error("Select worker error", error);
+        showToast("Could not select worker", "");
+      } finally {
+        state.selectingWorkerBountyId = null;
+        renderMyBounties();
+      }
     }
 
     function openConfirm(text, onConfirm, type) {
@@ -792,6 +1044,7 @@
 
         let actionsHtml = "";
         let infoHtml = "";
+        let selectedInfoHtml = "";
 
         if (status === "open") {
           actionsHtml = '<button type="button" class="btn btn-danger action-delete" data-id="' + bounty.id + '">Delete</button>';
@@ -801,25 +1054,14 @@
           actionsHtml =
             '<button type="button" class="btn btn-success action-release" data-id="' + bounty.id + '">Release Payment</button>' +
             '<button type="button" class="btn btn-warn action-dispute" data-id="' + bounty.id + '">Raise Dispute</button>';
+          selectedInfoHtml = '<div class="info-banner">Selected worker: ' + (bounty.assigned_worker || bounty.worker_email || bounty.worker_name || "unknown") + '</div>';
         }
 
         if (status === "disputed") {
           infoHtml = '<div class="info-banner">Awaiting arbitrator decision</div>';
         }
 
-        const applicantsHtml = applicants.length
-          ? '<div class="applicants-block">' +
-              '<div class="applicants-title">Applicants (' + applicants.length + ')</div>' +
-              applicants.map((app) => (
-                '<div class="applicant-item">' +
-                  '<div class="applicant-name">' + (app.worker_name || app.name || "Unknown") + '</div>' +
-                  '<div class="muted">Email: ' + (app.worker_email || app.email || "-") + '</div>' +
-                  '<div class="muted">Skills: ' + (app.worker_skills || app.skills || "-") + '</div>' +
-                  '<div class="muted">Reason: ' + (app.worker_reason || app.reason || "-") + '</div>' +
-                '</div>'
-              )).join("") +
-            '</div>'
-          : '<div class="muted">No applicants yet.</div>';
+        const applicantsHtml = renderApplicantsBlock(bounty, applicants);
 
         card.innerHTML =
           '<div class="row">' +
@@ -833,6 +1075,7 @@
             '<span>Reward: ' + Number(bounty.reward || 0).toLocaleString() + ' ALGO</span>' +
             '<span>Deadline: ' + formatDate(bounty.deadline) + '</span>' +
           '</div>' +
+          selectedInfoHtml +
           applicantsHtml +
           infoHtml +
           '<div class="actions">' + actionsHtml + '</div>';
@@ -918,7 +1161,14 @@
 
     async function releasePayment(bountyId) {
       try {
-        const txnId = "txn-" + bountyId + "-" + Date.now();
+        const bounty = state.myBounties.find((item) => Number(item.id) === Number(bountyId));
+        const workerAddress = String((bounty && bounty.worker_address) || "").trim();
+        if (!workerAddress) {
+          showToast("Worker wallet address is missing. Select a worker who connected Pera Wallet.", "");
+          return;
+        }
+
+        const txnId = await callReleasePaymentArc4(workerAddress);
         const response = await fetch("/api/bounties/" + bountyId + "/complete", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -1045,6 +1295,7 @@
     }
 
     function bindEvents() {
+      connectWalletBtn.addEventListener("click", connectWallet);
       logoutBtn.addEventListener("click", () => {
         clearAuthSession();
         window.location.href = "auth.html";
@@ -1061,6 +1312,16 @@
       myBountiesNode.addEventListener("click", (event) => {
         const target = event.target;
         if (!(target instanceof HTMLElement)) {
+          return;
+        }
+
+        const selectBtn = target.closest(".action-select-worker");
+        if (selectBtn) {
+          const bountyId = Number(selectBtn.getAttribute("data-bounty-id"));
+          const workerEmail = String(selectBtn.getAttribute("data-worker-email") || "").trim();
+          if (bountyId && workerEmail) {
+            selectWorkerForBounty(bountyId, workerEmail);
+          }
           return;
         }
 
@@ -1131,6 +1392,7 @@
     }
 
     function init() {
+      initPeraWallet();
       state.user = parseLocalUser();
       if (!state.user) {
         return;
@@ -1141,6 +1403,7 @@
       document.getElementById("poster-email").value = state.user.email || "";
 
       bindEvents();
+      hydrateWalletSession();
       loadMyBounties();
     }
 
