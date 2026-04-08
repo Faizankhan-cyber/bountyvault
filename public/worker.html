@@ -638,6 +638,8 @@
   <script src="wallet.js"></script>
 
   <script>
+    const API = "https://bountyvault-backend.onrender.com";
+
     const state = {
       user: null,
       selectedBountyId: null,
@@ -917,7 +919,7 @@
     }
 
     async function fetchBounties() {
-      const response = await fetch("/api/bounties");
+      const response = await fetch(`${API}/api/bounties`);
       if (!response.ok) {
         throw new Error("Failed to load bounties");
       }
@@ -1040,7 +1042,7 @@
           payload
         });
 
-        const response = await fetch("/api/bounties/" + state.selectedBountyId + "/applicants", {
+        const response = await fetch(`${API}/api/bounties/` + state.selectedBountyId + `/applicants`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
@@ -1086,7 +1088,7 @@
         const applicantLists = await Promise.all(
           bounties.map(async (bounty) => {
             try {
-              const response = await fetch("/api/bounties/" + Number(bounty.id) + "/applicants");
+              const response = await fetch(`${API}/api/bounties/` + Number(bounty.id) + `/applicants`);
               if (!response.ok) {
                 return [];
               }
@@ -1139,7 +1141,7 @@
       }
 
       try {
-        const response = await fetch("/api/bounties/" + Number(bountyId) + "/dispute", {
+        const response = await fetch(`${API}/api/bounties/` + Number(bountyId) + `/dispute`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -1179,7 +1181,7 @@
 
       try {
         const txnId = "txn-" + Number(bountyId) + "-" + Date.now();
-        const response = await fetch("/api/bounties/" + Number(bountyId) + "/complete", {
+        const response = await fetch(`${API}/api/bounties/` + Number(bountyId) + `/complete`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ txn_id: txnId })

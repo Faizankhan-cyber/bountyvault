@@ -1,7 +1,8 @@
 // Fetch and display stats
+const API = "https://bountyvault-backend.onrender.com";
 async function loadStats() {
   try {
-    const response = await fetch('/api/stats');
+    const response = await fetch(`${API}/api/stats`);
     const stats = await response.json();
 
     const statsGrid = document.getElementById('stats-grid');

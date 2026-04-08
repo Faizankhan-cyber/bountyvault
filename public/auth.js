@@ -1,5 +1,6 @@
 // Role selection
 let selectedRole = null;
+const API = "https://bountyvault-backend.onrender.com";
 
 document.querySelectorAll('.role-card').forEach(card => {
   card.addEventListener('click', () => {
@@ -54,7 +55,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
   };
 
   try {
-    const response = await fetch('/api/auth/login', {
+    const response = await fetch(`${API}/api/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

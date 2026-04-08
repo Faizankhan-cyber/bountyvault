@@ -578,6 +578,8 @@
     import algosdk from "https://cdn.jsdelivr.net/npm/algosdk/+esm";
     import * as algokit from "https://cdn.jsdelivr.net/npm/@algorandfoundation/algokit-utils/+esm";
 
+    const API = "https://bountyvault-backend.onrender.com";
+
     const state = {
       arbitrator: null,
       disputes: [],
@@ -895,7 +897,7 @@
     }
 
     async function loadBounties() {
-      const response = await fetch("/api/bounties");
+      const response = await fetch(`${API}/api/bounties`);
       if (!response.ok) {
         throw new Error("Failed to fetch bounties");
       }
@@ -904,7 +906,7 @@
     }
 
     async function loadDisputes() {
-      const response = await fetch("/api/disputes");
+      const response = await fetch(`${API}/api/disputes`);
       if (!response.ok) {
         throw new Error("Failed to fetch disputes");
       }
@@ -1019,7 +1021,7 @@
     }
 
     async function loadStatsData() {
-      const response = await fetch("/api/stats");
+      const response = await fetch(`${API}/api/stats`);
       if (!response.ok) {
         throw new Error("Failed to fetch stats");
       }
@@ -1086,7 +1088,7 @@
 
         const txnId = await callResolveDisputeArc4(recipientAddress, decision);
 
-        const response = await fetch("/api/bounties/" + bountyId + "/resolve", {
+        const response = await fetch(`${API}/api/bounties/` + bountyId + `/resolve`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

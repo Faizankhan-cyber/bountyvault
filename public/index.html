@@ -636,6 +636,8 @@
 
   <script src="wallet.js"></script>
   <script>
+    const API = "https://bountyvault-backend.onrender.com";
+
     const state = {
       allBounties: [],
       visibleBounties: []
@@ -785,7 +787,7 @@
 
     async function loadBounties() {
       try {
-        const response = await fetch("/api/bounties");
+        const response = await fetch(`${API}/api/bounties`);
         if (!response.ok) {
           throw new Error("Bounties request failed");
         }
@@ -806,7 +808,7 @@
 
     async function loadStats() {
       try {
-        const response = await fetch("/api/stats");
+        const response = await fetch(`${API}/api/stats`);
         if (!response.ok) {
           throw new Error("Stats request failed");
         }

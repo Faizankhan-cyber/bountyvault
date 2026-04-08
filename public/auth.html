@@ -275,6 +275,8 @@
 
   <script src="wallet.js"></script>
   <script>
+    const API = "https://bountyvault-backend.onrender.com";
+
     let selectedRole = null;
     const logoutBtn = document.getElementById("logout-btn");
 
@@ -395,7 +397,7 @@
           password: payload.password ? "***" : ""
         });
 
-        const response = await fetch("/api/auth/login", {
+        const response = await fetch(`${API}/api/auth/login`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json"

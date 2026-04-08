@@ -204,6 +204,8 @@
 
   <script src="wallet.js"></script>
   <script>
+    const API = "https://bountyvault-backend.onrender.com";
+
     const signupForm = document.getElementById("signup-form");
     const signupNote = document.getElementById("signup-note");
 
@@ -223,7 +225,7 @@
           password: profile.password ? "***" : ""
         });
 
-        const response = await fetch("/api/auth/signup", {
+        const response = await fetch(`${API}/api/auth/signup`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(profile)

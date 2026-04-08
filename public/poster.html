@@ -614,6 +614,8 @@
   <script src="wallet.js"></script>
 
   <script>
+    const API = "https://bountyvault-backend.onrender.com";
+
     const state = {
       user: null,
       myBounties: [],
@@ -969,7 +971,7 @@
         state.selectingWorkerBountyId = Number(bountyId);
         renderMyBounties();
 
-        const response = await fetch("/api/bounties/" + bountyId + "/select", {
+        const response = await fetch(`${API}/api/bounties/` + bountyId + `/select`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ worker_email: workerEmail })
@@ -1079,7 +1081,7 @@
         createBtn.disabled = true;
         createBtn.textContent = "Creating...";
 
-        const response = await fetch("/api/bounties", {
+        const response = await fetch(`${API}/api/bounties`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
@@ -1176,7 +1178,7 @@
         state.myBounties.map(async (bounty) => {
           const bountyId = Number(bounty.id);
           try {
-            const response = await fetch("/api/bounties/" + bountyId + "/applicants");
+            const response = await fetch(`${API}/api/bounties/` + bountyId + `/applicants`);
             if (!response.ok) {
               console.log("[POSTER][APPLICANTS] fetch failed", { bountyId, status: response.status });
               return { bountyId, applicants: [] };
@@ -1205,7 +1207,7 @@
       myBountiesNode.innerHTML = "";
 
       try {
-        const response = await fetch("/api/bounties");
+        const response = await fetch(`${API}/api/bounties`);
         if (!response.ok) {
           throw new Error("Failed to load bounties");
         }
@@ -1225,7 +1227,7 @@
 
     async function deleteBounty(bountyId) {
       try {
-        const response = await fetch("/api/bounties/" + bountyId, { method: "DELETE" });
+        const response = await fetch(`${API}/api/bounties/` + bountyId, { method: "DELETE" });
         if (!response.ok) {
           const error = await response.json().catch(() => ({}));
           showToast(error.error || "Delete failed", "");
@@ -1249,7 +1251,7 @@
         }
 
         const txnId = await callReleasePaymentArc4(workerAddress);
-        const response = await fetch("/api/bounties/" + bountyId + "/complete", {
+        const response = await fetch(`${API}/api/bounties/` + bountyId + `/complete`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ txn_id: txnId })
@@ -1295,7 +1297,7 @@
             disputeSubmitBtn.disabled = true;
             disputeSubmitBtn.textContent = "Submitting...";
 
-            const response = await fetch("/api/bounties/" + bounty.id + "/dispute", {
+            const response = await fetch(`${API}/api/bounties/` + bounty.id + `/dispute`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -1363,7 +1365,7 @@
         }
         const myIds = new Set(state.myBounties.map((b) => Number(b.id)));
 
-        const response = await fetch("/api/transactions");
+        const response = await fetch(`${API}/api/transactions`);
         if (!response.ok) {
           throw new Error("Failed to load transactions");
         }
