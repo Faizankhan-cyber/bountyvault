@@ -1,7 +1,3 @@
-app.use(cors({
-  origin: '*'
-}));
-const API = "https://bountyvault-backend.onrender.com";
 const express = require("express");
 const cors = require("cors");
 const fs = require("fs");
@@ -186,7 +182,6 @@ app.post("/api/auth/login", (req, res) => {
 
     const email = String(req.body && req.body.email ? req.body.email : "").trim().toLowerCase();
     const password = String(req.body && req.body.password ? req.body.password : "");
-    const role = String(req.body && req.body.role ? req.body.role : "").trim().toLowerCase();
 
     if (!email || !password) {
       return res.status(400).json({ error: "email and password are required" });
@@ -198,10 +193,6 @@ app.post("/api/auth/login", (req, res) => {
 
     if (!user || user.password !== password) {
       return res.status(401).json({ error: "invalid credentials" });
-    }
-
-    if (role && user.role !== role) {
-      return res.status(403).json({ error: "selected role does not match account role" });
     }
 
     return res.json({
