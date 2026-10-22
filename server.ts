@@ -257,22 +257,6 @@ app.get("/api/bounties", (_req, res) => {
   }
 });
 
-app.get("/api/bounties/:id", (req, res) => {
-  try {
-    const bountyId = parseId(req.params.id);
-    if (!bountyId) {
-      return res.status(400).json({ error: "invalid bounty id" });
-    }
-    const bounty = db.prepare("SELECT * FROM bounties WHERE id = ?").get(bountyId);
-    if (!bounty) {
-      return res.status(404).json({ error: "bounty not found" });
-    }
-    return res.json(bounty);
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message });
-  }
-});
-
 app.post("/api/bounties", (req, res) => {
   try {
     const { poster_name, poster_email, title, description, reward, category, deadline } = req.body;

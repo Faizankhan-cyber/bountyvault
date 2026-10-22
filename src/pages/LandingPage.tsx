@@ -577,6 +577,31 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
             </p>
           </div>
         </div>
+
+        {/* Learn & Simulator Callout */}
+        <div className="p-6 rounded-xl bg-[#0B0D0C] border border-[#2B302B] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded bg-[#191D19] text-[#C6FF4D] border border-[#2B302B]">
+                Interactive Academy
+              </span>
+              <span className="text-xs text-[#9A9E98]">Beginner Friendly</span>
+            </div>
+            <h4 className="text-sm font-bold text-[#F5F5F0]">
+              Want to see smart escrow in action before transacting?
+            </h4>
+            <p className="text-xs text-[#9A9E98] leading-relaxed max-w-2xl">
+              Launch our risk-free educational simulation sandbox, test happy and dispute workflows, or study blockchain fundamentals and safe wallet hygiene.
+            </p>
+          </div>
+          <button
+            onClick={() => onNavigate("learn")}
+            className="px-4 py-2 rounded-lg bg-[#141715] hover:bg-[#191D19] border border-[#2B302B] hover:border-[#C6FF4D] text-xs font-semibold text-[#F5F5F0] hover:text-[#C6FF4D] transition-colors shrink-0 flex items-center gap-1.5"
+          >
+            <span>Visit Learn Center</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </section>
 
       {/* 5. Bottom Architectural Callout */}

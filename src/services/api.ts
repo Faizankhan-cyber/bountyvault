@@ -37,11 +37,6 @@ export const api = {
     return handleResponse(res);
   },
 
-  async getBounty(id: number): Promise<Bounty> {
-    const res = await fetch(`${API_BASE}/api/bounties/${id}`);
-    return handleResponse(res);
-  },
-
   async createBounty(payload: {
     poster_name: string;
     poster_email: string;
