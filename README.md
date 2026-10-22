@@ -1,98 +1,80 @@
-# 🔐 BountyVault (React + Express Edition)
+# BountyVault — Decentralized Escrow on Algorand
 
-> A decentralized bounty escrow platform on **Algorand** enabling trustless deposits, verified milestone deliveries, and transparent on-chain dispute arbitration.
+BountyVault is a full-stack escrow prototype for managing bounty work, milestone delivery, payment release, and dispute handling with an Algorand Testnet component.
 
-Rewritten as a modern full-stack **React SPA on Vite with Node.js/Express and SQLite**, preserving all original business logic, multi-role dashboards, and escrow mechanics.
+- **Live demo:** https://bountyvault-project.vercel.app/
+- **Source repository:** https://github.com/Faizankhan-cyber/bountyvault
+- **Network:** Algorand Testnet
+- **License:** MIT
 
----
+## Overview
 
-## 🏗️ Architecture
+The project explores how an escrow workflow can represent trust between a person posting a bounty and a worker completing it. The application combines a React frontend, an Express API, SQLite persistence, and Algorand Testnet wallet/transaction flows.
 
-```text
-┌────────────────────────────────────────────────────────┐
-│               React + Vite SPA Frontend                │
-│  • Public Landing Page & Stats                         │
-│  • Public Bounty Explorer with Search & Filter         │
-│  • Multi-Role Auth (Poster / Worker / Arbitrator)      │
-│  • Poster Dashboard: Post Bounty, Review, Release Tx   │
-│  • Worker Dashboard: Browse, Apply, Deliver, Earnings  │
-│  • Arbitrator Console: Evidence Review, Binding Ruling │
-└───────────────────────────┬────────────────────────────┘
-                            │ REST API (JSON)
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│                 Express Backend Server                 │
-│  • /api/auth/signup & /api/auth/login                  │
-│  • /api/bounties (CRUD, Select, Complete, Cancel)      │
-│  • /api/bounties/:id/applicants                        │
-│  • /api/bounties/:id/dispute & /resolve                │
-│  • /api/transactions & /api/stats                      │
-└──────────────┬──────────────────────────┬──────────────┘
-               │                          │
-               ▼                          ▼
-    ┌──────────────────────┐    ┌──────────────────┐
-    │  SQLite Database     │    │ Algorand Testnet │
-    │  (better-sqlite3)    │    │ Pera Wallet Sync │
-    └──────────────────────┘    └──────────────────┘
-```
+## Architecture
 
----
+~~~text
+React + Vite frontend
+        |
+        | REST API (JSON)
+        v
+Node.js + Express API
+        |                         |
+        v                         v
+SQLite database             Algorand Testnet
+                                |
+                          Pera Wallet integration
+~~~
 
-## ✨ Features & Dashboards
+The repository describes API areas for authentication, bounty lifecycle actions, applicants, disputes, transactions, and statistics.
 
-1. **Public Explorer & Landing**:
-   - Live platform stats (volume in ALGO, open escrows, resolution rate).
-   - Real-time search, category filters, and sorting.
-   - Comprehensive bounty detail modals and 1-click application submission.
+## Main workflows
 
-2. **Poster Dashboard**:
-   - Post new bounties with ALGO reward escrow locking.
-   - Review applicant proposals and select workers to transition escrows to `acquired`.
-   - Release payouts on deliverable completion or raise disputes for non-delivery.
-   - Audit trail of transactions and state transitions.
+- **Bounty discovery:** browse and filter available bounties.
+- **Poster workflow:** create bounties, review applicants, select a worker, and progress the escrow lifecycle.
+- **Worker workflow:** browse work, apply, submit deliverables, and review earnings or transaction history.
+- **Dispute workflow:** submit and review disputes, with a separate arbitrator experience for resolving disputes.
+- **Escrow and transactions:** explore fund locking, payout, refund, and transaction records on the test network.
+- **Wallet connection:** supports a Pera Wallet flow described in the project implementation.
 
-3. **Worker Hub**:
-   - Browse opportunities across Development, Design, Writing, and more.
-   - Submit applications with skill tags and Algorand wallet address.
-   - Track live job progress and view milestone settlement receipts.
-   - Earnings analytics showing total ALGO earned and in-flight escrows.
+These are prototype capabilities. Check the running demo and source before assuming every workflow is available in every deployment configuration.
 
-4. **Arbitrator Dispute Center**:
-   - Independent judiciary console for disputed escrows.
-   - Examine grievance claims and submitted verification evidence.
-   - Execute irreversible on-chain rulings (Worker payout release vs Poster refund).
-   - Platform health metrics and dispute resolution rate visualization.
+## Technology stack
 
-5. **Algorand Web3 Wallet Integration**:
-   - Pera Wallet Connect support.
-   - Automatic fallback to Algorand Testnet address connector with instant address generation.
+| Area | Technology |
+|---|---|
+| Frontend | React, TypeScript, Vite, Tailwind CSS |
+| Backend | Node.js, Express, TypeScript |
+| Local data | SQLite with better-sqlite3 |
+| Blockchain | Algorand Testnet |
+| Wallet | Pera Wallet integration |
 
----
+## Run locally
 
-## 🛠️ Tech Stack
+Prerequisite: Node.js and npm. From the repository root:
 
-- **Frontend**: React 19, TypeScript, Vite, Tailwind CSS, Lucide Icons
-- **Backend**: Express, TypeScript (tsx), better-sqlite3
-- **Network**: Algorand Testnet (ARC-56 compatible escrow model)
-- **Database**: SQLite (`./data/bountyvault.db`)
-
----
-
-## 🚀 Running the App
-
-```bash
-# Install dependencies
+~~~bash
 npm install
-
-# Start development server (Express + Vite on port 3000)
 npm run dev
+~~~
 
-# Build for production
+The development setup is documented to run the Vite frontend and Express backend together on port 3000.
+
+To create a production build:
+
+~~~bash
 npm run build
-```
+~~~
 
----
+Refer to the current source and package scripts for the authoritative local run configuration.
 
-## 📄 License
+## Security and testing notes
 
-MIT
+- This is an educational/hackathon project, not a reviewed production escrow service.
+- It is configured around Algorand Testnet; do not use real funds or production credentials for experimentation.
+- Smart-contract, wallet, authentication, authorization, and dispute flows should receive independent security review before any production use.
+- Never commit private keys, seed phrases, access tokens, production credentials, or real personal data.
+
+## License
+
+MIT. See the repository's license file for terms.
