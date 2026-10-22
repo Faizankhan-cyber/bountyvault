@@ -3,17 +3,13 @@
   "version": "1.0.0",
   "description": "BountyVault is a decentralized bounty escrow platform built on Algorand, enabling trustless payments and transparent on-chain dispute resolution without intermediaries.",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "tsx server.ts",
+    "build": "vite build",
+    "lint": "tsc --noEmit",
+    "start": "NODE_ENV=production tsx server.ts"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Faizankhan-cyber/bountyvault.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "bugs": {
     "url": "https://github.com/Faizankhan-cyber/bountyvault/issues"
   },
@@ -22,6 +18,23 @@
     "@perawallet/connect": "^1.5.2",
     "better-sqlite3": "^12.8.0",
     "cors": "^2.8.6",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "lucide-react": "^1.61.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5"
   }
 }
