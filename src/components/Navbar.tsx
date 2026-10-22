@@ -50,6 +50,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
     { id: "home", label: "Home", href: "/" },
     { id: "marketplace", label: "Marketplace", href: "/marketplace" },
     { id: "how-it-works", label: "How It Works", href: "/how-it-works" },
+    { id: "learn", label: "Learn", href: "/learn" },
     { id: "transactions", label: "Transactions", href: "/transactions" },
     { id: "security", label: "Security", href: "/security" },
     { id: "about", label: "About", href: "/about" },
@@ -58,6 +59,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
   const isNavActive = (id: string) => {
     if (id === "home") return currentView === "home" || currentView === "landing";
     if (id === "marketplace") return currentView === "marketplace" || currentView === "bounties" || currentView === "bounty-detail";
+    if (id === "learn") return currentView === "learn" || currentView === "lesson-detail" || currentView === "learn-simulation";
     return currentView === id;
   };
 

@@ -71,6 +71,22 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               </li>
               <li>
                 <button
+                  onClick={() => onNavigate("learn")}
+                  className="hover:text-[#F5F5F0] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#C6FF4D]"
+                >
+                  Learning Center
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => onNavigate("learn-simulation")}
+                  className="hover:text-[#F5F5F0] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#C6FF4D]"
+                >
+                  Escrow Simulation Lab
+                </button>
+              </li>
+              <li>
+                <button
                   onClick={() => onNavigate("transactions")}
                   className="hover:text-[#F5F5F0] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#C6FF4D]"
                 >

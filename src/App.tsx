@@ -17,6 +17,9 @@ import { AboutPage } from "./pages/AboutPage";
 import { SecurityPage } from "./pages/SecurityPage";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
+import { LearnPage } from "./pages/LearnPage";
+import { LessonDetailPage } from "./pages/LessonDetailPage";
+import { EscrowSimulationPage } from "./pages/EscrowSimulationPage";
 
 const parsePath = (path: string): { view: string; param?: string } => {
   const clean = path.replace(/\/+$/, "") || "/";
@@ -28,6 +31,13 @@ const parsePath = (path: string): { view: string; param?: string } => {
   const bountyMatch = clean.match(/^\/bounties\/(\d+)$/);
   if (bountyMatch) {
     return { view: "bounty-detail", param: bountyMatch[1] };
+  }
+
+  if (clean === "/learn") return { view: "learn" };
+  if (clean === "/learn/simulation") return { view: "learn-simulation" };
+  const lessonMatch = clean.match(/^\/learn\/([a-z0-9-]+)$/);
+  if (lessonMatch) {
+    return { view: "lesson-detail", param: lessonMatch[1] };
   }
 
   if (clean === "/how-it-works") return { view: "how-it-works" };
@@ -54,6 +64,12 @@ const getPathForView = (view: string, param?: string): string => {
       return "/bounties/create";
     case "bounty-detail":
       return param ? `/bounties/${param}` : "/marketplace";
+    case "learn":
+      return "/learn";
+    case "learn-simulation":
+      return "/learn/simulation";
+    case "lesson-detail":
+      return param ? `/learn/${param}` : "/learn";
     case "how-it-works":
       return "/how-it-works";
     case "transactions":
@@ -136,6 +152,15 @@ const AppContent: React.FC = () => {
 
       case "how-it-works":
         return <HowItWorksPage onNavigate={handleNavigate} />;
+
+      case "learn":
+        return <LearnPage onNavigate={handleNavigate} />;
+
+      case "lesson-detail":
+        return <LessonDetailPage lessonId={viewParam || "blockchain-fundamentals"} onNavigate={handleNavigate} />;
+
+      case "learn-simulation":
+        return <EscrowSimulationPage onNavigate={handleNavigate} />;
 
       case "transactions":
       case "escrow":
